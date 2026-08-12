@@ -39,6 +39,11 @@ import net.minecraft.network.chat.Component;
  */
 public final class XrayCommand {
 
+    // Whether Sodium is installed never changes after startup (mods aren't hot-swapped), so
+    // this is resolved once instead of walking FabricLoader's mod container map on every
+    // single toggle/on/off invocation.
+    private static final boolean SODIUM_LOADED = FabricLoader.getInstance().isModLoaded("sodium");
+
     private XrayCommand() {
     }
 
@@ -99,7 +104,7 @@ public final class XrayCommand {
      * looked "stuck" / patchy / only-local before this was added.
      */
     private static void forceChunkRefresh() {
-        if (FabricLoader.getInstance().isModLoaded("sodium")) {
+        if (SODIUM_LOADED) {
             SodiumRenderRefresher.refreshAllChunks();
         }
     }
