@@ -6,7 +6,8 @@
   "client": [
     "BlockRendererMixin",
     "AbstractBlockRenderContextMixin",
-    "DefaultFluidRendererMixin"
+    "DefaultFluidRendererMixin",
+    "ChunkBuilderMeshingTaskMixin"
   ],
   "injectors": {
     "defaultRequire": 1
