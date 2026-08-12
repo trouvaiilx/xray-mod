@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 1,
+  "id": "xray-mod",
+  "version": "${version}",
+  "name": "X-Ray",
+  "description": "Client-side X-ray with Sodium support, toggled via a client command.",
+  "authors": ["you"],
+  "contact": {},
+  "license": "MIT",
+  "environment": "client",
+  "entrypoints": {
+    "client": [
+      "com.example.xray.XrayClient"
+    ]
+  },
+  "mixins": [
+    "xray-sodium.mixins.json"
+  ],
+  "depends": {
+    "fabricloader": ">=0.16.0",
+    "minecraft": "26.2",
+    "fabric-api": "*"
+  },
+  "custom": {
+    "modmenu": {
+      "badges": ["client"]
+    }
+  }
+}

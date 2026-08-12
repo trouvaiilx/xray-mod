@@ -1,0 +1,16 @@
+# Gradle
+.gradle/
+build/
+out/
+
+# IDE
+.idea/
+*.iml
+*.ipr
+*.iws
+
+# Loom / run directory (holds a real Minecraft install + your dev world)
+run/
+
+# OS
+.DS_Store

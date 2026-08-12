@@ -1,0 +1,84 @@
+package com.example.xray;
+
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.resources.Identifier;
+import net.minecraft.world.level.block.Block;
+
+import java.util.HashSet;
+import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
+
+/**
+ * Holds the runtime X-ray toggle and the set of blocks that should remain visible.
+ * Read from the render thread (mixins) and written from the command thread — both
+ * of these only ever happen on the client, and the flag is a plain volatile/atomic,
+ * so no extra locking is needed for a simple on/off switch.
+ */
+public final class XrayState {
+    private static final AtomicBoolean ENABLED = new AtomicBoolean(false);
+
+    // Default ore whitelist. Edit freely, or load this from a config file later.
+    private static final Set<Block> WHITELIST = new HashSet<>();
+
+    static {
+        addOre("minecraft:diamond_ore");
+        addOre("minecraft:deepslate_diamond_ore");
+        addOre("minecraft:emerald_ore");
+        addOre("minecraft:deepslate_emerald_ore");
+        addOre("minecraft:gold_ore");
+        addOre("minecraft:deepslate_gold_ore");
+        addOre("minecraft:iron_ore");
+        addOre("minecraft:deepslate_iron_ore");
+        addOre("minecraft:redstone_ore");
+        addOre("minecraft:deepslate_redstone_ore");
+        addOre("minecraft:lapis_ore");
+        addOre("minecraft:deepslate_lapis_ore");
+        addOre("minecraft:copper_ore");
+        addOre("minecraft:deepslate_copper_ore");
+        addOre("minecraft:ancient_debris");
+        addOre("minecraft:nether_gold_ore");
+        addOre("minecraft:nether_quartz_ore");
+    }
+
+    private XrayState() {
+    }
+
+    private static void addOre(String id) {
+        // NOTE: Mojang renamed ResourceLocation -> Identifier back in 1.21.11 -- this carries
+        // through to 26.x -- but it stayed in the SAME package, net.minecraft.resources.
+        // (An earlier attempt at this fix incorrectly moved the import to net.minecraft.util;
+        // confirmed against real current mod source that it's still net.minecraft.resources.)
+        Block block = BuiltInRegistries.BLOCK.getValue(Identifier.parse(id));
+        if (block != null) {
+            WHITELIST.add(block);
+        }
+    }
+
+    public static boolean isEnabled() {
+        return ENABLED.get();
+    }
+
+    public static void setEnabled(boolean value) {
+        ENABLED.set(value);
+    }
+
+    public static boolean toggle() {
+        // NOTE: AtomicBoolean has no accumulateAndGet/updateAndGet (those only exist on
+        // AtomicInteger/AtomicLong/AtomicReference) -- that was a real bug, not a version
+        // issue. Plain compare-and-swap loop instead.
+        boolean oldValue;
+        boolean newValue;
+        do {
+            oldValue = ENABLED.get();
+            newValue = !oldValue;
+        } while (!ENABLED.compareAndSet(oldValue, newValue));
+        return newValue;
+    }
+
+    /**
+     * True for blocks that should keep rendering (and render on every face) while X-ray is on.
+     */
+    public static boolean isWhitelisted(Block block) {
+        return WHITELIST.contains(block);
+    }
+}

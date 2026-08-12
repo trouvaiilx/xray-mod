@@ -1,0 +1,13 @@
+{
+  "required": true,
+  "package": "com.example.xray.mixin.sodium",
+  "compatibilityLevel": "JAVA_21",
+  "plugin": "com.example.xray.mixin.sodium.SodiumMixinPlugin",
+  "client": [
+    "BlockRendererMixin",
+    "AbstractBlockRenderContextMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

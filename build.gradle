@@ -1,0 +1,77 @@
+plugins {
+    // NOTE: 26.1+ (unobfuscated Minecraft) uses a DIFFERENT plugin id than older Loom --
+    // "net.fabricmc.fabric-loom", not the bare "fabric-loom" id used for obfuscated versions.
+    // As of Aug 2026 this is only published as a SNAPSHOT on Fabric's own maven
+    // (maven.fabricmc.net, declared in settings.gradle's pluginManagement block) --
+    // it is not on the Gradle Plugin Portal, which is why the original 'fabric-loom'/'1.17'
+    // combination failed to resolve.
+    id 'net.fabricmc.fabric-loom' version "${loom_version}"
+    id 'maven-publish'
+}
+
+version = project.mod_version
+group = project.maven_group
+
+base {
+    archivesName = project.archives_base_name
+}
+
+repositories {
+    // Sodium is published to Modrinth's maven
+    maven {
+        name = "Modrinth"
+        url = "https://api.modrinth.com/maven"
+        content {
+            includeGroup "maven.modrinth"
+        }
+    }
+}
+
+dependencies {
+    minecraft "com.mojang:minecraft:${project.minecraft_version}"
+    // NOTE: no `mappings` line here on purpose. 26.1+ ships unobfuscated, so there's nothing
+    // to map -- the game's own class/method names ARE the names you write in source. Declaring
+    // loom.officialMojangMappings() (or Yarn) here is what threw "Cannot use Mojang mappings
+    // in a non-obfuscated environment" -- that call is only valid for pre-26.1 MC versions.
+
+    // IMPORTANT: 26.1+ Loom does NOT remap anything (the game already ships with real
+    // names), so none of these use the "mod___" prefixed configurations anymore --
+    // that was only ever needed so Loom could remap a mod jar's obfuscated references.
+    // Using modImplementation here would still work in some Loom builds but is the
+    // wrong/legacy pattern for this MC version per Fabric's own migration notes.
+    implementation "net.fabricmc:fabric-loader:${project.loader_version}"
+    implementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
+
+    // Compile-only: we mixin into Sodium's classes but never ship or require them directly.
+    compileOnly "maven.modrinth:sodium:${project.sodium_version}"
+
+    // Handy for local testing: puts real Sodium in the dev run so gradle runClient has it loaded.
+    runtimeOnly "maven.modrinth:sodium:${project.sodium_version}"
+}
+
+processResources {
+    inputs.property "version", project.version
+    filteringCharset "UTF-8"
+
+    filesMatching("fabric.mod.json") {
+        expand "version": project.version
+    }
+}
+
+java {
+    withSourcesJar()
+    // Minecraft 26.1+ requires Java 25 at runtime -- match it here, or gradle runClient
+    // and the compiled jar will mismatch what the game actually needs.
+    sourceCompatibility = JavaVersion.VERSION_25
+    targetCompatibility = JavaVersion.VERSION_25
+}
+
+tasks.withType(JavaCompile).configureEach {
+    it.options.release = 25
+}
+
+jar {
+    from("LICENSE") {
+        rename { "${it}_${project.base.archivesName.get()}" }
+    }
+}
