@@ -19,8 +19,15 @@ guaranteed (see `XrayCommand`'s class doc for why).
   different toggle states depending on when they last rebuilt for an unrelated reason.
 - `BlockRendererMixin` — cancels Sodium's per-block mesh emission for anything not in the
   whitelist, while X-ray is on. This is what makes stone/dirt/etc. actually stop rendering.
-- `AbstractBlockRenderContextMixin` — forces whitelisted ore blocks to render on every face
-  regardless of what's touching them, so ore embedded in hidden stone doesn't get culled away.
+- `AbstractBlockRenderContextMixin` — two fixes in one file, both on the same class:
+  1. forces whitelisted ore blocks to render on every face regardless of what's touching
+     them, so ore embedded in hidden stone doesn't get culled away.
+  2. **fullbright ore**: overrides both the lightmap coordinate AND the separate ambient-
+     occlusion brightness array (`quadLightData.br`) for whitelisted blocks at the tail of
+     `shadeQuad`. The first attempt at this only forced Sodium's `emissive` flag, which turned
+     out to only touch the lightmap — a second, separate AO multiplier was still silently
+     crushing the color back down, which is why it didn't visibly glow at first. Both values
+     now get forced together.
 - `DefaultFluidRendererMixin` — forces water/lava faces to always render while X-ray is on,
   regardless of what invisible block they're touching. Fluids are meshed by a completely
   separate code path from regular blocks (see the class doc in that file), so they needed
