@@ -1,7 +1,9 @@
 # xray-mod
 
 Client-side Fabric mod: toggleable X-ray with a Sodium (mc26.2-0.9.1-fabric) render backend.
-Toggle in-game with `/trigger xray` (client-only command, no server/datapack needed).
+Toggle in-game with `/xray toggle`, `/xray on`, or `/xray off` — full tab-completion.
+`/trigger xray [true|false]` also works as a legacy alias but its tab-completion isn't
+guaranteed (see `XrayCommand`'s class doc for why).
 
 ## What's actually implemented
 
@@ -19,6 +21,10 @@ Toggle in-game with `/trigger xray` (client-only command, no server/datapack nee
   whitelist, while X-ray is on. This is what makes stone/dirt/etc. actually stop rendering.
 - `AbstractBlockRenderContextMixin` — forces whitelisted ore blocks to render on every face
   regardless of what's touching them, so ore embedded in hidden stone doesn't get culled away.
+- `DefaultFluidRendererMixin` — forces water/lava faces to always render while X-ray is on,
+  regardless of what invisible block they're touching. Fluids are meshed by a completely
+  separate code path from regular blocks (see the class doc in that file), so they needed
+  their own fix rather than being covered by the block-hiding mixin above.
 - `SodiumMixinPlugin` — gates both mixins above so the mod doesn't crash if Sodium isn't
   installed; it just becomes a no-op (you'll see a warning in the log).
 

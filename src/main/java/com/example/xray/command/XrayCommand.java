@@ -11,9 +11,22 @@ import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.network.chat.Component;
 
 /**
- * Registers a CLIENT-ONLY command, "/trigger xray". It never touches the server or a real
- * scoreboard objective — it just gives you the familiar "/trigger <name>" muscle memory
- * without depending on a datapack objective existing in the world you're in.
+ * Registers TWO client-only commands:
+ *
+ *   /xray toggle | /xray on | /xray off   <- primary, guaranteed clean tab-completion
+ *   /trigger xray [true|false]            <- kept as a muscle-memory alias
+ *
+ * Both are entirely client-side and never touch the server or a real scoreboard objective.
+ *
+ * IMPORTANT about "/trigger": vanilla itself already owns a REAL server-side "/trigger
+ * <objective>" command (for scoreboard-trigger objectives). Fabric API's own docs state
+ * outright that when a client-only command and a server command share a top-level literal,
+ * "the precedence rules... are an implementation detail... the aim is to make commands from
+ * the server take precedence over client-sided commands" -- i.e. tab-completion under a
+ * shared literal is explicitly NOT guaranteed. That's almost certainly why "/trigger x" was
+ * failing to suggest "xray": the real vanilla trigger node was winning. "/xray" is a literal
+ * nothing else registers, so it has no such ambiguity and will always tab-complete cleanly.
+ * The "/trigger xray" alias is left in for convenience, but don't rely on its autocomplete.
  *
  * NOTE: Fabric API renamed the old "ClientCommandManager" helper class to "ClientCommands"
  * (to match vanilla's own Commands/ClientCommands naming under Mojang mappings), and command
@@ -31,6 +44,21 @@ public final class XrayCommand {
 
     public static void register() {
         ClientCommandRegistrationCallback.EVENT.register((dispatcher, registryAccess) -> {
+            // Primary command -- no literal collision with anything vanilla/server-side,
+            // so tab-completion is guaranteed to work.
+            dispatcher.register(
+                    ClientCommands.literal("xray")
+                            .executes(XrayCommand::toggle)
+                            .then(ClientCommands.literal("toggle")
+                                    .executes(XrayCommand::toggle))
+                            .then(ClientCommands.literal("on")
+                                    .executes(ctx -> setAndRespond(ctx, true)))
+                            .then(ClientCommands.literal("off")
+                                    .executes(ctx -> setAndRespond(ctx, false)))
+            );
+
+            // Legacy alias -- kept for the "/trigger xray" muscle memory, but its
+            // tab-completion is NOT guaranteed (see class doc above).
             dispatcher.register(
                     ClientCommands.literal("trigger")
                             .then(ClientCommands.literal("xray")
@@ -39,6 +67,13 @@ public final class XrayCommand {
                                             .executes(XrayCommand::setExplicit)))
             );
         });
+    }
+
+    private static int setAndRespond(CommandContext<FabricClientCommandSource> ctx, boolean value) {
+        XrayState.setEnabled(value);
+        forceChunkRefresh();
+        feedback(ctx, value);
+        return 1;
     }
 
     private static int toggle(CommandContext<FabricClientCommandSource> ctx) {

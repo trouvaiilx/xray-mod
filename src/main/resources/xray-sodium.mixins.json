@@ -5,7 +5,8 @@
   "plugin": "com.example.xray.mixin.sodium.SodiumMixinPlugin",
   "client": [
     "BlockRendererMixin",
-    "AbstractBlockRenderContextMixin"
+    "AbstractBlockRenderContextMixin",
+    "DefaultFluidRendererMixin"
   ],
   "injectors": {
     "defaultRequire": 1

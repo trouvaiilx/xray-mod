@@ -2,6 +2,7 @@ package com.example.xray.compat;
 
 import com.example.xray.XrayClient;
 import net.caffeinemc.mods.sodium.client.render.SodiumWorldRenderer;
+import net.minecraft.client.Minecraft;
 
 /**
  * Deliberately kept in its own tiny class, separate from XrayCommand. XrayCommand must stay
@@ -17,25 +18,44 @@ public final class SodiumRenderRefresher {
     }
 
     /**
-     * Forces every currently-loaded chunk section to rebuild its mesh from scratch --
-     * the same call the vanilla F3+A "reload chunks" debug keybind ends up making. This is
-     * necessary because Sodium only rebuilds a section's mesh when something marks that
-     * specific section dirty (a block edit, a chunk load); flipping our own XrayState flag
-     * doesn't do that on its own, so without this call, only sections that get touched for
-     * some other reason (breaking a block near them) would ever pick up the new state, and
-     * everywhere else would keep showing whatever was true the last time IT rebuilt.
+     * Schedules a normal async rebuild for every chunk section within the player's current
+     * render distance -- the same background mechanism Sodium already uses every time a
+     * block is broken or placed nearby, just applied to every loaded section instead of one.
      *
-     * This IS a comparatively heavy call -- it discards all built geometry and rebuilds the
-     * whole visible world asynchronously, which can cause a brief re-pop-in flash on large
-     * render distances. That's an acceptable trade for a manually-triggered toggle command;
-     * it would NOT be acceptable to call this every tick or every frame.
+     * This is necessary because Sodium only rebuilds a section's mesh when something marks
+     * that specific section dirty; flipping our own XrayState flag doesn't do that on its
+     * own, so without this call only sections that happen to get touched some other way
+     * (breaking a block near them) would ever pick up the new toggle state.
+     *
+     * Deliberately NOT using SodiumWorldRenderer#reload() here: that call tears down and
+     * reinitializes the whole renderer synchronously (discarding all GPU buffers and
+     * recreating the render dispatcher), which is what caused the noticeable frame-drop/hitch
+     * on toggle. scheduleRebuildForChunks just queues normal background rebuild tasks -- the
+     * same lightweight path used during ordinary mining -- so it stays smooth.
      */
     public static void refreshAllChunks() {
         try {
             var renderer = SodiumWorldRenderer.instanceNullable();
-            if (renderer != null) {
-                renderer.reload();
+            var client = Minecraft.getInstance();
+            var player = client.player;
+
+            if (renderer == null || player == null) {
+                return;
             }
+
+            int renderDistance = client.options.getEffectiveRenderDistance();
+            int cx = player.blockPosition().getX() >> 4;
+            int cy = player.blockPosition().getY() >> 4;
+            int cz = player.blockPosition().getZ() >> 4;
+
+            // A cube isn't exactly Sodium's real (roughly cylindrical) view volume, so this
+            // will schedule a handful of extra out-of-view sections -- harmless, since
+            // scheduleRebuild() no-ops for sections that don't exist/aren't built yet.
+            renderer.scheduleRebuildForChunks(
+                    cx - renderDistance, cy - renderDistance, cz - renderDistance,
+                    cx + renderDistance, cy + renderDistance, cz + renderDistance,
+                    true // playerChanged: prioritizes sections near the player, same as vanilla block-edit rebuilds do
+            );
         } catch (Throwable t) {
             // Never let a render-refresh failure take down the command itself -- worst case,
             // the toggle silently doesn't force a repaint and behaves like before this fix.
@@ -43,3 +63,4 @@ public final class SodiumRenderRefresher {
         }
     }
 }
+

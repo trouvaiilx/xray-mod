@@ -38,6 +38,17 @@ public final class XrayState {
         addOre("minecraft:ancient_debris");
         addOre("minecraft:nether_gold_ore");
         addOre("minecraft:nether_quartz_ore");
+
+        // Safety net for the fluid BLOCK's own model, if it has one (belt-and-suspenders --
+        // the actual water/lava visibility fix is DefaultFluidRendererMixin, which forces
+        // fluid faces visible unconditionally while X-ray is on; that mixin doesn't check
+        // this whitelist at all, since fluids are meshed via a separate code path from
+        // regular blocks and were never affected by the block-hiding mixin above in the
+        // first place). minecraft:water and minecraft:lava cover BOTH source and flowing
+        // states -- since ~1.13 they're a single Block per fluid (a LEVEL blockstate
+        // property distinguishes them), not separate registry entries.
+        addOre("minecraft:water");
+        addOre("minecraft:lava");
     }
 
     private XrayState() {
