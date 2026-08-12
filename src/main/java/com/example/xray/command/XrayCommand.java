@@ -1,11 +1,13 @@
 package com.example.xray.command;
 
 import com.example.xray.XrayState;
+import com.example.xray.compat.SodiumRenderRefresher;
 import com.mojang.brigadier.arguments.BoolArgumentType;
 import com.mojang.brigadier.context.CommandContext;
 import net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallback;
 import net.fabricmc.fabric.api.client.command.v2.ClientCommands;
 import net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource;
+import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.network.chat.Component;
 
 /**
@@ -41,6 +43,7 @@ public final class XrayCommand {
 
     private static int toggle(CommandContext<FabricClientCommandSource> ctx) {
         boolean nowEnabled = XrayState.toggle();
+        forceChunkRefresh();
         feedback(ctx, nowEnabled);
         return 1;
     }
@@ -48,8 +51,22 @@ public final class XrayCommand {
     private static int setExplicit(CommandContext<FabricClientCommandSource> ctx) {
         boolean value = BoolArgumentType.getBool(ctx, "state");
         XrayState.setEnabled(value);
+        forceChunkRefresh();
         feedback(ctx, value);
         return 1;
+    }
+
+    /**
+     * Sodium only rebuilds a chunk section's mesh when something marks that section dirty
+     * (a block edit, a chunk load) -- it has no idea our XrayState flag just changed. Without
+     * forcing a refresh here, only sections that happen to get touched some other way (e.g.
+     * breaking a block near them) would ever pick up the new state, which is why toggling
+     * looked "stuck" / patchy / only-local before this was added.
+     */
+    private static void forceChunkRefresh() {
+        if (FabricLoader.getInstance().isModLoaded("sodium")) {
+            SodiumRenderRefresher.refreshAllChunks();
+        }
     }
 
     private static void feedback(CommandContext<FabricClientCommandSource> ctx, boolean enabled) {

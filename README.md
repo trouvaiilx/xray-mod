@@ -7,7 +7,14 @@ Toggle in-game with `/trigger xray` (client-only command, no server/datapack nee
 
 - `XrayState` — the on/off flag + ore whitelist (edit the block list directly in that file for now).
 - `XrayCommand` — registers `/trigger xray` and `/trigger xray <true|false>` as a **client-only**
-  Brigadier command via Fabric API. Doesn't touch the server.
+  Brigadier command via Fabric API. Doesn't touch the server. Also forces a full chunk mesh
+  refresh on toggle (see `SodiumRenderRefresher`) so the effect applies everywhere immediately.
+- `SodiumRenderRefresher` — calls `SodiumWorldRenderer.instance().reload()` (the same call the
+  vanilla F3+A "reload chunks" debug key triggers) right after every toggle. Without this,
+  Sodium has no reason to rebuild a chunk section's mesh just because our flag changed — it
+  only rebuilds on block edits or chunk load — so toggling would silently do nothing until
+  something else happened to touch that section, and different areas of the world could show
+  different toggle states depending on when they last rebuilt for an unrelated reason.
 - `BlockRendererMixin` — cancels Sodium's per-block mesh emission for anything not in the
   whitelist, while X-ray is on. This is what makes stone/dirt/etc. actually stop rendering.
 - `AbstractBlockRenderContextMixin` — forces whitelisted ore blocks to render on every face
@@ -79,6 +86,20 @@ Then commit the generated `gradle/wrapper/` folder so future clones don't need a
 4. **Sanity-check collision**: with X-ray on, walk into a wall that's now invisible — you
    should still bump into it. If you fall through, something is (incorrectly) touching
    collision, not just rendering — none of the code here should do that, so that'd be a bug.
+
+## Known quirks
+
+- **Brief flash/pop-in on toggle.** `reload()` discards every built chunk mesh and rebuilds
+  the whole visible world from scratch, asynchronously. On large render distances you'll see
+  a moment of blocks re-popping-in — that's expected, not a bug. If you want a smoother
+  toggle later, the lighter-weight alternative is `SodiumWorldRenderer.scheduleRebuildForChunks(...)`
+  bounded to just the loaded render-distance area, instead of a full `reload()`.
+- **Flicker/blocks appearing-and-disappearing *while a reload is in progress*** is the async
+  rebuild actually happening — sections pop back in one at a time as Sodium's background
+  mesh-builder threads catch up, not a bug. If you see this **outside** of right-after-a-toggle
+  (i.e. it keeps happening steady-state while standing still with X-ray already settled),
+  that's not expected — open an issue / re-check the mixins, since something else is
+  re-triggering rebuilds.
 
 ## Updating the ore whitelist
 
