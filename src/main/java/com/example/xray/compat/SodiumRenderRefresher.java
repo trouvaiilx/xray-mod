@@ -45,15 +45,27 @@ public final class SodiumRenderRefresher {
 
             int renderDistance = client.options.getEffectiveRenderDistance();
             int cx = player.blockPosition().getX() >> 4;
-            int cy = player.blockPosition().getY() >> 4;
             int cz = player.blockPosition().getZ() >> 4;
 
-            // A cube isn't exactly Sodium's real (roughly cylindrical) view volume, so this
-            // will schedule a handful of extra out-of-view sections -- harmless, since
-            // scheduleRebuild() no-ops for sections that don't exist/aren't built yet.
+            // X/Z: loaded chunks are already a (2*renderDistance+1) square around the player,
+            // same shape scheduleRebuildForChunks is given here, so there's no real waste on
+            // those two axes -- scheduleRebuild() no-ops for the handful of corner sections
+            // outside Sodium's actual (roughly cylindrical) view volume anyway.
+            //
+            // Y is different: it was previously also expanded by +-renderDistance, i.e. up to
+            // 65 section-Y values scheduled at a high render distance, when the world itself
+            // (level.getMinSectionY()..getMaxSectionY()) only ever has on the order of ~24
+            // sections to begin with, regardless of render distance. Every out-of-bounds Y
+            // still costs a real scheduleRebuildForChunks loop iteration and a map lookup
+            // before it no-ops, so clamping to the level's actual section range (the same
+            // bound Sodium's own RenderSectionManager/OcclusionCuller iterate over) cuts that
+            // wasted work instead of just calling it harmless.
+            int minSectionY = client.level.getMinSectionY();
+            int maxSectionY = client.level.getMaxSectionY();
+
             renderer.scheduleRebuildForChunks(
-                    cx - renderDistance, cy - renderDistance, cz - renderDistance,
-                    cx + renderDistance, cy + renderDistance, cz + renderDistance,
+                    cx - renderDistance, minSectionY, cz - renderDistance,
+                    cx + renderDistance, maxSectionY, cz + renderDistance,
                     true // playerChanged: prioritizes sections near the player, same as vanilla block-edit rebuilds do
             );
         } catch (Throwable t) {

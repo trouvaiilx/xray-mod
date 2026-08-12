@@ -1,10 +1,10 @@
 package com.example.xray;
 
+import it.unimi.dsi.fastutil.objects.ReferenceOpenHashSet;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.Identifier;
 import net.minecraft.world.level.block.Block;
 
-import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -18,7 +18,18 @@ public final class XrayState {
     private static final AtomicBoolean ENABLED = new AtomicBoolean(false);
 
     // Default ore whitelist. Edit freely, or load this from a config file later.
-    private static final Set<Block> WHITELIST = new HashSet<>();
+    //
+    // isWhitelisted() below is called from BlockRenderer/AbstractBlockRenderContext/
+    // DefaultFluidRenderer mixins, i.e. potentially several times per solid block in every
+    // chunk section that gets (re)meshed on worker threads. A plain java.util.HashSet<Block>
+    // works (Block has no custom equals/hashCode, so it's already identity-based), but every
+    // lookup still walks a Node-based bucket. fastutil's ReferenceOpenHashSet does the same
+    // identity comparison over a flat open-addressed array with no per-entry object, which is
+    // both faster and more cache-friendly in this hot path -- it's the same reasoning Sodium's
+    // own Block-keyed hot-path maps use (e.g. ColorProviderRegistry's
+    // Reference2ReferenceOpenHashMap<Block, ...>). fastutil is already a transitive dependency
+    // via Minecraft itself, so this doesn't add anything to build.gradle.
+    private static final Set<Block> WHITELIST = new ReferenceOpenHashSet<>();
 
     static {
         addOre("minecraft:diamond_ore");
@@ -76,13 +87,17 @@ public final class XrayState {
     public static boolean toggle() {
         // NOTE: AtomicBoolean has no accumulateAndGet/updateAndGet (those only exist on
         // AtomicInteger/AtomicLong/AtomicReference) -- that was a real bug, not a version
-        // issue. Plain compare-and-swap loop instead.
-        boolean oldValue;
-        boolean newValue;
-        do {
-            oldValue = ENABLED.get();
-            newValue = !oldValue;
-        } while (!ENABLED.compareAndSet(oldValue, newValue));
+        // issue.
+        //
+        // A CAS retry loop here is unnecessary work, not just unnecessary caution: per this
+        // class's own doc comment, ENABLED is only ever WRITTEN from the client command
+        // thread, and Brigadier executes client commands one at a time on that single thread
+        // (see XrayCommand) -- so there is never a second writer for the CAS to lose a race
+        // against. AtomicBoolean is still the right type (its get()/set() are volatile reads/
+        // writes, which is what actually matters: making the new value visible to the render
+        // threads that call isEnabled()), just without the pointless retry loop.
+        boolean newValue = !ENABLED.get();
+        ENABLED.set(newValue);
         return newValue;
     }
 
