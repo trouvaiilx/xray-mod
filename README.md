@@ -32,7 +32,18 @@ guaranteed (see `XrayCommand`'s class doc for why).
   regardless of what invisible block they're touching. Fluids are meshed by a completely
   separate code path from regular blocks (see the class doc in that file), so they needed
   their own fix rather than being covered by the block-hiding mixin above.
-- `SodiumMixinPlugin` — gates both mixins above so the mod doesn't crash if Sodium isn't
+- `ChunkBuilderMeshingTaskMixin` — fixes the "flashes visible while moving the mouse,
+  disappears while standing still" bug. Separate from all the mesh/quad mixins above: Sodium
+  also builds a per-section **occlusion graph** (`DirectionalVisGraph`) from each block's real,
+  unmodified `isSolidRender()`, and its whole-world visibility BFS (`OcclusionCuller`) refuses
+  to traverse into a section that graph reports as fully closed — regardless of what the mesh
+  mixins do. Sections hidden behind X-rayed stone were still reported as closed (since the real
+  block is still solid), so most of them were never rendered at all; only the ring of sections
+  touching the camera has a frustum-only fallback check that reruns every frame, and *that*
+  check flickering in and out as the view frustum swept with the mouse is what caused the
+  flashing. This mixin makes a block that's being hidden by `BlockRendererMixin` also stop
+  registering as opaque in that occlusion graph, so the graph matches what's actually drawn.
+- `SodiumMixinPlugin` — gates the mixins above so the mod doesn't crash if Sodium isn't
   installed; it just becomes a no-op (you'll see a warning in the log).
 
 Both mixins were written against Sodium's actual current source (CaffeineMC/sodium, `dev`
@@ -102,17 +113,15 @@ Then commit the generated `gradle/wrapper/` folder so future clones don't need a
 
 ## Known quirks
 
-- **Brief flash/pop-in on toggle.** `reload()` discards every built chunk mesh and rebuilds
-  the whole visible world from scratch, asynchronously. On large render distances you'll see
-  a moment of blocks re-popping-in — that's expected, not a bug. If you want a smoother
-  toggle later, the lighter-weight alternative is `SodiumWorldRenderer.scheduleRebuildForChunks(...)`
-  bounded to just the loaded render-distance area, instead of a full `reload()`.
-- **Flicker/blocks appearing-and-disappearing *while a reload is in progress*** is the async
-  rebuild actually happening — sections pop back in one at a time as Sodium's background
-  mesh-builder threads catch up, not a bug. If you see this **outside** of right-after-a-toggle
-  (i.e. it keeps happening steady-state while standing still with X-ray already settled),
-  that's not expected — open an issue / re-check the mixins, since something else is
-  re-triggering rebuilds.
+- **Brief flash/pop-in right after toggling.** `forceChunkRefresh()` schedules an async
+  background rebuild of every loaded section (the same lightweight path Sodium already uses
+  for a normal block edit — see `SodiumRenderRefresher`), so on large render distances you'll
+  see sections pop back in one at a time as the mesh-builder threads catch up. That's expected
+  for a few frames right after a toggle, not a bug. If it keeps happening steady-state while
+  standing still with X-ray already settled, that's not expected — open an issue.
+- **~~Blocks flashing visible while moving the mouse, disappearing while still~~ — fixed** by
+  `ChunkBuilderMeshingTaskMixin` (see above). If you're on a build from before that mixin was
+  added, that's the bug it fixes; pull the latest source.
 
 ## Updating the ore whitelist
 
