@@ -1,13 +1,13 @@
 # xray-mod
 
-Client-side Fabric mod for **Minecraft 26.2**: toggleable X-ray featuring an in-game configuration GUI, Sodium (mc26.2-0.9.1-fabric) rendering hooks, and a vanilla rendering fallback.
+Client-side Fabric mod for **Minecraft 26.2**: toggleable X-ray featuring an in-game configuration GUI and Sodium (mc26.2-0.9.1-fabric) rendering hooks.
 
 ---
 
 ## Features
 
 - **In-Game Settings GUI**: Press **Right Shift** (or configure in Options > Controls) to open the interactive settings menu.
-- **Commands**: `/xray toggle`, `/xray on`, `/xray off` with full tab-completion (plus `/trigger xray [true|false]` as a legacy alias).
+- **Commands**: `/xray`, `/xray toggle`, `/xray on`, `/xray off` with full tab-completion (plus `/trigger xray [true|false]` as a legacy alias).
 - **Search & Category Filters**: Easily filter blocks by category (*All Blocks*, *Ores*, *Nether*, *End*, *Fluids*, *Utility*) or search by block ID and localized name.
 - **Interactive Block Grid**:
   - Creative-inventory style icon grid with hover tooltips and green highlights for whitelisted blocks.
@@ -21,7 +21,7 @@ Client-side Fabric mod for **Minecraft 26.2**: toggleable X-ray featuring an in-
 - **Fullbright Lighting**: Forces fullbright lightmap values and disables ambient occlusion shading for whitelisted blocks and fluids when enabled.
 - **Always Fluids Safety Toggle**: A dedicated toggle (`Always Fluids: ON/OFF`) that locks water and lava as whitelisted, preventing accidental removal.
 - **Instant Live Update**: Any GUI setting change or menu close immediately re-meshes chunk rendering without requiring an off/on toggle.
-- **Sodium & Vanilla Backends**: Advanced Sodium 0.9.1+ mixin hooks (occlusion graph patching, block skipping, fluid face culling, and fullbright lighting) with an automatic fallback for vanilla level renderer reloads.
+- **Sodium Requirement Guard**: Safe fallback check: if Sodium is not installed, executing commands or pressing the keybind safely displays a clear warning message in chat (`Sodium is not installed! X-ray rendering requires Sodium.`) without crashing or corrupting level render data.
 - **Persistence**: Auto-saves configuration to `config/xray-mod.json` with write-then-atomic-rename safety.
 
 ---
@@ -36,28 +36,18 @@ Client-side Fabric mod for **Minecraft 26.2**: toggleable X-ray featuring an in-
 
 ---
 
-## Architecture & Mixin Highlights
-
-1. **`XrayConfigScreen`**: Custom 26.2 GUI using `extractRenderState` and `AbstractWidget` rendering, housing the search box, category carousel, block grid, distance slider, fullbright toggle, fluid protection toggle, preset button, and close handler.
-2. **`BlockGridWidget`**: Custom 18x18px cell grid widget with hover tooltip rendering, mouse click/scroll handlers, and stable whitelist-first sorting.
-3. **`XrayConfig`**: Thread-safe configuration manager backing `config/xray-mod.json` with atomic fields (`AtomicInteger`, `AtomicBoolean`, `AtomicReference<Set<Block>>`) for fast worker-thread reads during chunk compilation.
-4. **`XrayClient`**: Mod initializer and client tick handler tracking player chunk coordinate changes (`cx != lastChunkX || cz != lastChunkZ`).
-5. **`SodiumRenderRefresher`**: Schedules background section rebuild tasks using Sodium's `scheduleRebuildForChunks` or vanilla's `resetLevelRenderData()`.
-6. **`BlockRendererMixin`**: Cancels block model meshing for non-whitelisted blocks (unconditionally) and whitelisted blocks beyond X-ray distance.
-7. **`ChunkBuilderMeshingTaskMixin`**: Directs Sodium's section occlusion graph (`DirectionalVisGraph`) to treat hidden blocks as non-opaque, resolving occlusion culling glitches and frustum mouse-flicker.
-8. **`DefaultFluidRendererMixin`**: Injects into `DefaultFluidRenderer.render` to cancel un-whitelisted fluids (water/lava) and handles exposed fluid faces and fullbright fluid lighting.
-9. **`AbstractBlockRenderContextMixin`**: Overrides face culling and ambient occlusion for whitelisted blocks.
-
----
-
-## Build Requirements
+## Requirements
 
 - **Minecraft**: 26.2
 - **Fabric Loader**: 0.19.3+
+- **Sodium**: `mc26.2-0.9.1-fabric` (Required for X-ray rendering)
 - **Java JDK**: 25 (Required for Minecraft 26.1+)
-- **Gradle**: 9.x (Wrapper included)
 
-### Building
+If Sodium is missing, attempting to toggle X-ray or open the settings menu will print a friendly red notice in chat advising you to install Sodium, preventing any game crash.
+
+---
+
+## Building
 
 Ensure `JAVA_HOME` is pointed to a JDK 25 installation:
 
