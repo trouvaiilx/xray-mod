@@ -1,8 +1,8 @@
 {
   "required": true,
-  "package": "com.example.xray.mixin.sodium",
+  "package": "io.github.trouvaiilx.xray.mixin.sodium",
   "compatibilityLevel": "JAVA_21",
-  "plugin": "com.example.xray.mixin.sodium.SodiumMixinPlugin",
+  "plugin": "io.github.trouvaiilx.xray.mixin.sodium.SodiumMixinPlugin",
   "client": [
     "BlockRendererMixin",
     "AbstractBlockRenderContextMixin",

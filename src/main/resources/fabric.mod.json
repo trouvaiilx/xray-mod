@@ -3,14 +3,22 @@
   "id": "xray-mod",
   "version": "${version}",
   "name": "X-Ray",
-  "description": "Client-side X-ray with Sodium support, toggled via a client command.",
-  "authors": ["trovaiilx"],
-  "contact": {},
+  "description": "Client-side X-ray for Fabric. STRICTLY REQUIRES Sodium to be installed for X-ray rendering visuals.",
+  "authors": [
+    "trouvaiilx"
+  ],
+  "contact": {
+    "homepage": "https://github.com/trouvaiilx/xray-mod",
+    "sources": "https://github.com/trouvaiilx/xray-mod",
+    "issues": "https://github.com/trouvaiilx/xray-mod/issues",
+    "funding": "https://ko-fi.com/trouvaiilx"
+  },
   "license": "MIT",
+  "icon": "assets/xray-mod/icon.png",
   "environment": "client",
   "entrypoints": {
     "client": [
-      "com.example.xray.XrayClient"
+      "io.github.trouvaiilx.xray.XrayClient"
     ]
   },
   "mixins": [
