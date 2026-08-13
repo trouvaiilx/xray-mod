@@ -30,13 +30,24 @@ public final class XrayClient implements ClientModInitializer {
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
             XrayConfig.tick();
 
-            if (XrayState.isEnabled() && client.player != null && client.level != null) {
-                int cx = client.player.blockPosition().getX() >> 4;
-                int cz = client.player.blockPosition().getZ() >> 4;
-                if (cx != lastChunkX || cz != lastChunkZ) {
-                    lastChunkX = cx;
-                    lastChunkZ = cz;
-                    refreshRender();
+            if (client.player != null && client.level != null) {
+                int cx = client.player.getBlockX() >> 4;
+                int cz = client.player.getBlockZ() >> 4;
+                XrayConfig.updatePlayerChunkPos(cx, cz);
+
+                if (XrayState.isEnabled()) {
+                    if (cx != lastChunkX || cz != lastChunkZ) {
+                        lastChunkX = cx;
+                        lastChunkZ = cz;
+
+                        // Only force-refresh chunk meshes when moving across chunk boundaries IF
+                        // X-ray distance is smaller than full effective render distance. If X-ray distance
+                        // covers the whole view range, newly loaded chunks are meshed by Sodium automatically.
+                        int effectiveDistance = client.options.getEffectiveRenderDistance();
+                        if (XrayConfig.getRenderDistance() < effectiveDistance) {
+                            refreshRender();
+                        }
+                    }
                 }
             }
         });

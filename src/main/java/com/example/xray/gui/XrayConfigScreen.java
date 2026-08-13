@@ -31,7 +31,21 @@ import java.util.Locale;
  * persisted by XrayConfig itself, so there's nothing extra to save on close.
  */
 public final class XrayConfigScreen extends Screen {
-    private static List<Block> allBlocksSorted; // built once; the registry doesn't change mid-session
+    private static final class BlockSearchEntry {
+        final Block block;
+        final String idPath;
+        final String displayNameLower;
+        final BlockCategory category;
+
+        BlockSearchEntry(Block block, String idPath, String displayNameLower, BlockCategory category) {
+            this.block = block;
+            this.idPath = idPath;
+            this.displayNameLower = displayNameLower;
+            this.category = category;
+        }
+    }
+
+    private static List<BlockSearchEntry> allBlockEntries; // built once; registry doesn't change mid-session
 
     private EditBox searchBox;
     private BlockGridWidget grid;
@@ -98,25 +112,27 @@ public final class XrayConfigScreen extends Screen {
         this.addRenderableWidget(Button.builder(Component.literal("Close"), b -> this.onClose())
                 .bounds(left + halfWidth + 2, y, halfWidth, 18).build());
 
-        if (allBlocksSorted == null) {
+        if (allBlockEntries == null) {
             loadAllBlocks();
         }
         refreshGrid(true);
     }
 
     private static void loadAllBlocks() {
-        List<Block> list = new ArrayList<>();
-        // The registry, not a manually maintained list -- this is what makes new vanilla
-        // blocks (and blocks added by other mods) show up automatically without any change
-        // to this mod.
+        List<BlockSearchEntry> list = new ArrayList<>();
+        // Pre-compute block ID, display name lower case, and category classification once
+        // to make GUI searching and filtering 100% allocation-free during interaction.
         for (Block block : BuiltInRegistries.BLOCK) {
             if (block == Blocks.AIR) {
                 continue;
             }
-            list.add(block);
+            String idPath = BuiltInRegistries.BLOCK.getKey(block).getPath().toLowerCase(Locale.ROOT);
+            String nameLower = block.getName().getString().toLowerCase(Locale.ROOT);
+            BlockCategory cat = BlockCategory.classify(block);
+            list.add(new BlockSearchEntry(block, idPath, nameLower, cat));
         }
-        list.sort(Comparator.comparing(b -> BuiltInRegistries.BLOCK.getKey(b).toString()));
-        allBlocksSorted = list;
+        list.sort(Comparator.comparing(e -> BuiltInRegistries.BLOCK.getKey(e.block).toString()));
+        allBlockEntries = list;
     }
 
     private void cycleCategory(int direction) {
@@ -139,18 +155,16 @@ public final class XrayConfigScreen extends Screen {
     private void refreshGrid(boolean resetScroll) {
         String query = this.searchBox.getValue().trim().toLowerCase(Locale.ROOT);
         List<Block> filtered = new ArrayList<>();
-        for (Block block : allBlocksSorted) {
-            if (this.category != BlockCategory.ALL && BlockCategory.classify(block) != this.category) {
+        for (BlockSearchEntry entry : allBlockEntries) {
+            if (this.category != BlockCategory.ALL && entry.category != this.category) {
                 continue;
             }
             if (!query.isEmpty()) {
-                String id = BuiltInRegistries.BLOCK.getKey(block).getPath();
-                String name = block.getName().getString().toLowerCase(Locale.ROOT);
-                if (!id.contains(query) && !name.contains(query)) {
+                if (!entry.idPath.contains(query) && !entry.displayNameLower.contains(query)) {
                     continue;
                 }
             }
-            filtered.add(block);
+            filtered.add(entry.block);
         }
 
         if (this.category == BlockCategory.ALL) {
@@ -200,7 +214,10 @@ public final class XrayConfigScreen extends Screen {
     @Override
     public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float delta) {
         super.extractRenderState(graphics, mouseX, mouseY, delta);
-        graphics.text(this.font, this.title, (this.width - this.font.width(this.title)) / 2, 6, 0xFFFFFFFF, true);
+        graphics.text(this.font, this.title, (this.width - this.font.width(this.title)) / 2, 4, 0xFFFFFFFF, true);
+        int whitelistedCount = XrayConfig.getWhitelistIds().size();
+        Component subTitle = Component.literal("Whitelisted: " + whitelistedCount + " blocks");
+        graphics.text(this.font, subTitle, (this.width - this.font.width(subTitle)) / 2, 16, 0xFFAAAA00, true);
     }
 
     @Override

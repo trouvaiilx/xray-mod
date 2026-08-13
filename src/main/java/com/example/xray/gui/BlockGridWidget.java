@@ -110,6 +110,11 @@ public final class BlockGridWidget extends AbstractWidget {
             if (!stack.isEmpty()) {
                 graphics.item(stack, cellX + 1, cellY + 1);
             }
+
+            // High-visibility top-right green indicator badge for whitelisted items
+            if (whitelisted) {
+                graphics.fill(cellX + CELL_SIZE - 4, cellY + 1, cellX + CELL_SIZE - 1, cellY + 4, 0xFF7CFC7C);
+            }
         }
 
         if (this.hoveredIndex >= 0) {
@@ -117,7 +122,9 @@ public final class BlockGridWidget extends AbstractWidget {
             int tw = mc.font.width(name);
             int tx = Math.min(mouseX + 10, getX() + this.width - tw - 6);
             int ty = mouseY - 4;
-            graphics.fill(tx - 3, ty - 2, tx + tw + 3, ty + mc.font.lineHeight + 2, 0xF0080808);
+            // Styled tooltip box with subtle border
+            graphics.fill(tx - 4, ty - 3, tx + tw + 4, ty + mc.font.lineHeight + 3, 0xF0101010);
+            graphics.outline(tx - 4, ty - 3, tw + 8, mc.font.lineHeight + 6, 0xFF555555);
             graphics.text(mc.font, name, tx, ty, 0xFFFFFFFF, false);
         }
     }

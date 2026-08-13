@@ -64,7 +64,17 @@ public final class XrayConfig {
     private static final AtomicBoolean DIRTY = new AtomicBoolean(false);
     private static final AtomicBoolean LOADED = new AtomicBoolean(false);
 
+    private static volatile int playerChunkX = 0;
+    private static volatile int playerChunkZ = 0;
+    private static volatile boolean playerPosValid = false;
+
     private XrayConfig() {
+    }
+
+    public static void updatePlayerChunkPos(int cx, int cz) {
+        playerChunkX = cx;
+        playerChunkZ = cz;
+        playerPosValid = true;
     }
 
     // ---- lifecycle ----
@@ -153,12 +163,17 @@ public final class XrayConfig {
     }
 
     public static boolean isChunkWithinXrayDistance(int chunkX, int chunkZ) {
-        var player = Minecraft.getInstance().player;
-        if (player == null) {
-            return true; // fail open -- never silently hide things because of a null player
+        if (!playerPosValid) {
+            var player = Minecraft.getInstance().player;
+            if (player == null) {
+                return true; // fail open -- never silently hide things because of a null player
+            }
+            playerChunkX = player.getBlockX() >> 4;
+            playerChunkZ = player.getBlockZ() >> 4;
+            playerPosValid = true;
         }
-        int px = player.blockPosition().getX() >> 4;
-        int pz = player.blockPosition().getZ() >> 4;
+        int px = playerChunkX;
+        int pz = playerChunkZ;
         int distance = RENDER_DISTANCE.get();
         return Math.max(Math.abs(chunkX - px), Math.abs(chunkZ - pz)) <= distance;
     }
