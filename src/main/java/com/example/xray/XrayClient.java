@@ -25,19 +25,26 @@ public final class XrayClient implements ClientModInitializer {
         XrayCommand.register();
         XrayKeybinds.register();
 
-        // Drains XrayConfig's dirty flag at most once per tick (20/sec), and tracks player movement
-        // across chunk section boundaries to update X-ray render distance dynamically as the player moves.
+        // Drains XrayConfig's dirty flag at most once per tick (20/sec), caches player chunk coordinates
+        // on the main client thread, and tracks player movement across chunk section boundaries to update
+        // X-ray render distance dynamically as the player moves.
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
             XrayConfig.tick();
 
-            if (XrayState.isEnabled() && client.player != null && client.level != null) {
+            if (client.player != null && client.level != null) {
                 int cx = client.player.blockPosition().getX() >> 4;
                 int cz = client.player.blockPosition().getZ() >> 4;
-                if (cx != lastChunkX || cz != lastChunkZ) {
-                    lastChunkX = cx;
-                    lastChunkZ = cz;
-                    refreshRender();
+                XrayConfig.updatePlayerChunkPos(cx, cz);
+
+                if (XrayState.isEnabled()) {
+                    if (cx != lastChunkX || cz != lastChunkZ) {
+                        lastChunkX = cx;
+                        lastChunkZ = cz;
+                        refreshRender();
+                    }
                 }
+            } else {
+                XrayConfig.clearPlayerChunkPos();
             }
         });
 
@@ -51,10 +58,14 @@ public final class XrayClient implements ClientModInitializer {
     }
 
     public static void refreshRender() {
-        if (!XrayState.isEnabled() || !FabricLoader.getInstance().isModLoaded("sodium")) {
+        refreshRender(XrayConfig.getRenderDistance());
+    }
+
+    public static void refreshRender(int radius) {
+        if (!FabricLoader.getInstance().isModLoaded("sodium")) {
             return;
         }
-        SodiumRenderRefresher.refreshAllChunks();
+        SodiumRenderRefresher.refreshXrayChunks(radius);
     }
 }
 

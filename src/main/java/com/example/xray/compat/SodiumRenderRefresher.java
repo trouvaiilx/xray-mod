@@ -34,38 +34,36 @@ public final class SodiumRenderRefresher {
      * same lightweight path used during ordinary mining -- so it stays smooth.
      */
     public static void refreshAllChunks() {
+        refreshXrayChunks(com.example.xray.config.XrayConfig.getRenderDistance());
+    }
+
+    public static void refreshXrayChunks(int targetRadius) {
         try {
             var renderer = SodiumWorldRenderer.instanceNullable();
             var client = Minecraft.getInstance();
             var player = client.player;
 
-            if (renderer == null || player == null) {
+            if (renderer == null || player == null || client.level == null) {
                 return;
             }
 
-            int renderDistance = client.options.getEffectiveRenderDistance();
+            int effectiveRenderDistance = client.options.getEffectiveRenderDistance();
+            int radius = Math.min(targetRadius, effectiveRenderDistance);
+
             int cx = player.blockPosition().getX() >> 4;
             int cz = player.blockPosition().getZ() >> 4;
 
-            // X/Z: loaded chunks are already a (2*renderDistance+1) square around the player,
-            // same shape scheduleRebuildForChunks is given here, so there's no real waste on
-            // those two axes -- scheduleRebuild() no-ops for the handful of corner sections
-            // outside Sodium's actual (roughly cylindrical) view volume anyway.
+            // X/Z: schedule rebuilds only for section bounds within the X-ray distance radius,
+            // clamped to the player's effective render distance.
             //
-            // Y is different: it was previously also expanded by +-renderDistance, i.e. up to
-            // 65 section-Y values scheduled at a high render distance, when the world itself
-            // (level.getMinSectionY()..getMaxSectionY()) only ever has on the order of ~24
-            // sections to begin with, regardless of render distance. Every out-of-bounds Y
-            // still costs a real scheduleRebuildForChunks loop iteration and a map lookup
-            // before it no-ops, so clamping to the level's actual section range (the same
-            // bound Sodium's own RenderSectionManager/OcclusionCuller iterate over) cuts that
-            // wasted work instead of just calling it harmless.
+            // Y is clamped to the level's actual section range (level.getMinSectionY()..getMaxSectionY())
+            // to avoid scheduling useless out-of-bounds Y section updates.
             int minSectionY = client.level.getMinSectionY();
             int maxSectionY = client.level.getMaxSectionY();
 
             renderer.scheduleRebuildForChunks(
-                    cx - renderDistance, minSectionY, cz - renderDistance,
-                    cx + renderDistance, maxSectionY, cz + renderDistance,
+                    cx - radius, minSectionY, cz - radius,
+                    cx + radius, maxSectionY, cz + radius,
                     true // playerChanged: prioritizes sections near the player, same as vanilla block-edit rebuilds do
             );
         } catch (Throwable t) {
