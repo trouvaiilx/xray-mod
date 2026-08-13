@@ -9,10 +9,16 @@ import net.caffeinemc.mods.sodium.client.model.light.data.QuadLightData;
 import net.caffeinemc.mods.sodium.client.model.quad.ModelQuadViewMutable;
 import net.caffeinemc.mods.sodium.client.model.quad.properties.ModelQuadFacing;
 import net.caffeinemc.mods.sodium.client.world.LevelSlice;
+import net.caffeinemc.mods.sodium.client.render.chunk.compile.buffers.ChunkModelBuilder;
+import net.caffeinemc.mods.sodium.client.render.chunk.terrain.material.Material;
+import net.caffeinemc.mods.sodium.client.render.chunk.translucent_sorting.TranslucentGeometryCollector;
+import net.minecraft.client.renderer.block.FluidModel;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.util.LightCoordsUtil;
 import net.minecraft.world.level.BlockGetter;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.material.FluidState;
 import net.minecraft.world.phys.shapes.VoxelShape;
@@ -30,16 +36,6 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
  * Fluids (water/lava) are meshed by an ENTIRELY SEPARATE code path from BlockRenderer --
  * see ChunkBuilderMeshingTask, which calls blockRenderer.renderModel(...) for the block model
  * and, independently, fluidRenderer.render(...) whenever a block has a non-empty FluidState.
- * That means BlockRendererMixin never touched fluid rendering at all, and fluids were already
- * unconditionally exempt from being hidden by X-ray -- so a lava/water SOURCE block was never
- * the problem.
- *
- * The actual problem: DefaultFluidRenderer culls individual fluid FACES based on the real
- * (unmodified) neighboring BlockState's occlusion shape -- exactly like the ore face-culling
- * issue AbstractBlockRenderContextMixin already fixes, just in fluids' own separate culling
- * logic. A lava pocket fully surrounded by stone that X-ray is hiding still has every face
- * culled against that (still solid, just invisible) stone, so you'd see nothing until you
- * actually broke into it.
  */
 @Mixin(DefaultFluidRenderer.class)
 public abstract class DefaultFluidRendererMixin {
@@ -49,6 +45,25 @@ public abstract class DefaultFluidRendererMixin {
 
     @Shadow
     private float[] brightness;
+
+    @Inject(method = "render", at = @At("HEAD"), cancellable = true)
+    private void xray$skipNonWhitelistedFluids(
+            LevelSlice level, BlockState blockState, FluidState fluidState, BlockPos pos, BlockPos origin,
+            TranslucentGeometryCollector collector, ChunkModelBuilder builder, Material material,
+            ColorProvider<FluidState> colorProvider, FluidModel model, CallbackInfo ci) {
+        if (XrayState.isEnabled()) {
+            Block fluidBlock = blockState.getBlock();
+            if (fluidBlock == Blocks.AIR) {
+                fluidBlock = fluidState.createLegacyBlock().getBlock();
+            }
+            boolean whitelisted = XrayState.isWhitelisted(fluidBlock);
+            if (!whitelisted) {
+                ci.cancel();
+            } else if (!XrayConfig.isWithinXrayDistance(pos.getX(), pos.getZ())) {
+                ci.cancel();
+            }
+        }
+    }
 
     @Inject(method = "isFullBlockFluidSideVisible", at = @At("HEAD"), cancellable = true)
     private void xray$alwaysShowFluidSide(BlockGetter view, BlockPos selfPos, Direction facing, FluidState fluid, CallbackInfoReturnable<Boolean> cir) {
@@ -61,13 +76,17 @@ public abstract class DefaultFluidRendererMixin {
                 return;
             }
 
-            // If the neighbor block is hidden by X-ray (not whitelisted), render the fluid face touching it
-            if (!XrayState.isWhitelisted(neighborState.getBlock())) {
+            BlockPos neighborPos = selfPos.relative(facing);
+            boolean neighborHidden = !XrayState.isWhitelisted(neighborState.getBlock())
+                    || !XrayConfig.isWithinXrayDistance(neighborPos.getX(), neighborPos.getZ());
+
+            // If the neighbor block is hidden by X-ray, render the fluid face touching it
+            if (neighborHidden) {
                 cir.setReturnValue(true);
                 return;
             }
 
-            // If the neighbor block IS whitelisted (e.g., ore), let Sodium's default occlusion logic decide
+            // If the neighbor block IS whitelisted and visible, let Sodium's default occlusion logic decide
         }
     }
 

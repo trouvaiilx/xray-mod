@@ -32,9 +32,15 @@ public abstract class BlockRendererMixin {
 
     @Inject(method = "renderModel", at = @At("HEAD"), cancellable = true)
     private void xray$skipNonWhitelistedBlocks(BlockStateModel model, BlockState state, BlockPos pos, BlockPos origin, CallbackInfo ci) {
-        if (XrayState.isEnabled() && !XrayState.isWhitelisted(state.getBlock())
-                && XrayConfig.isWithinXrayDistance(pos.getX(), pos.getZ())) {
-            ci.cancel();
+        if (XrayState.isEnabled()) {
+            boolean whitelisted = XrayState.isWhitelisted(state.getBlock());
+            if (!whitelisted) {
+                // Non-whitelisted blocks (stone, dirt, etc.) are ALWAYS hidden/transparent everywhere
+                ci.cancel();
+            } else if (!XrayConfig.isWithinXrayDistance(pos.getX(), pos.getZ())) {
+                // Whitelisted blocks (ores, fluids) beyond X-ray render distance are NOT rendered
+                ci.cancel();
+            }
         }
     }
 }
