@@ -1,6 +1,7 @@
 package com.example.xray.mixin.sodium;
 
 import com.example.xray.XrayState;
+import com.example.xray.config.XrayConfig;
 import net.caffeinemc.mods.sodium.client.render.chunk.compile.pipeline.BlockRenderer;
 import net.minecraft.client.renderer.block.dispatch.BlockStateModel;
 import net.minecraft.core.BlockPos;
@@ -31,8 +32,15 @@ public abstract class BlockRendererMixin {
 
     @Inject(method = "renderModel", at = @At("HEAD"), cancellable = true)
     private void xray$skipNonWhitelistedBlocks(BlockStateModel model, BlockState state, BlockPos pos, BlockPos origin, CallbackInfo ci) {
-        if (XrayState.isEnabled() && !XrayState.isWhitelisted(state.getBlock())) {
-            ci.cancel();
+        if (XrayState.isEnabled()) {
+            boolean whitelisted = XrayState.isWhitelisted(state.getBlock());
+            if (!whitelisted) {
+                // Non-whitelisted blocks (stone, dirt, etc.) are ALWAYS hidden/transparent everywhere
+                ci.cancel();
+            } else if (!XrayConfig.isWithinXrayDistance(pos.getX(), pos.getZ())) {
+                // Whitelisted blocks (ores, fluids) beyond X-ray render distance are NOT rendered
+                ci.cancel();
+            }
         }
     }
 }
