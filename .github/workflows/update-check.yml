@@ -29,17 +29,24 @@ jobs:
           # Fetch latest stable Minecraft version from Fabric Meta API
           LATEST_MC=$(curl -s https://meta.fabricmc.net/v2/versions/game | jq -r '[.[] | select(.stable == true)][0].version')
           
-          # Fetch latest STABLE Sodium release for FABRIC from Modrinth API (filtering out alpha, beta, and neoforge builds)
-          LATEST_SODIUM=$(curl -s "https://api.modrinth.com/v2/project/sodium/version?loaders=%5B%22fabric%22%5D&version_types=%5B%22release%22%5D" | jq -r '.[0].version_number')
+          # Query Modrinth API for Sodium versions
+          SODIUM_VERSIONS_RAW=$(curl -s "https://api.modrinth.com/v2/project/sodium/version")
+
+          # Filter Sodium versions for Fabric + matching the target Minecraft version ($CURRENT_MC), prioritizing stable releases over alpha/beta
+          LATEST_SODIUM=$(echo "$SODIUM_VERSIONS_RAW" | jq -r --arg mc "$CURRENT_MC" '
+            [.[] | select((.loaders | index("fabric")) != null and (.game_versions | index($mc)) != null)]
+            | (map(select(.version_type == "release")) + .)
+            | .[0].version_number // "none"
+          ')
 
           echo "Latest stable Minecraft version: $LATEST_MC"
-          echo "Latest stable Sodium release for Fabric: $LATEST_SODIUM"
+          echo "Latest Sodium Fabric version for MC $CURRENT_MC: $LATEST_SODIUM"
 
           # Generate GitHub Step Summary
           {
             echo "# 🔄 Version & Dependency Check Summary"
             echo ""
-            echo "| Dependency | Current Version | Latest Available | Status |"
+            echo "| Dependency | Current Version | Latest Available (MC $CURRENT_MC) | Status |"
             echo "| --- | --- | --- | --- |"
             if [ "$CURRENT_MC" = "$LATEST_MC" ]; then
               echo "| **Minecraft** | \`$CURRENT_MC\` | \`$LATEST_MC\` | ✅ Up to date |"
