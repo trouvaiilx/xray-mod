@@ -24,6 +24,7 @@ public final class XrayClient implements ClientModInitializer {
         XrayConfig.load();
         XrayCommand.register();
         XrayKeybinds.register();
+        io.github.trouvaiilx.xray.render.XrayPeekRenderer.register();
 
         // Drains XrayConfig's dirty flag at most once per tick (20/sec), and tracks player movement
         // across chunk section boundaries to update X-ray render distance dynamically as the player moves.
@@ -62,7 +63,7 @@ public final class XrayClient implements ClientModInitializer {
     }
 
     public static void refreshRender() {
-        if (!XrayState.isEnabled() || !FabricLoader.getInstance().isModLoaded("sodium")) {
+        if (!FabricLoader.getInstance().isModLoaded("sodium")) {
             return;
         }
         SodiumRenderRefresher.refreshAllChunks();

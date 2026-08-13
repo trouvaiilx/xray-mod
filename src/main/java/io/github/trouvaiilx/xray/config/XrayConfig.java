@@ -42,11 +42,23 @@ public final class XrayConfig {
     public static final int MAX_RENDER_DISTANCE = 32;
     private static final int DEFAULT_RENDER_DISTANCE = 8;
 
+    public static final int MIN_PEEK_RADIUS = 1;
+    public static final int MAX_PEEK_RADIUS = 10;
+    private static final int DEFAULT_PEEK_RADIUS = 4;
+
+    public static final int MIN_PEEK_OPACITY = 1;
+    public static final int MAX_PEEK_OPACITY = 100;
+    private static final int DEFAULT_PEEK_OPACITY = 40;
+
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
 
     private static final AtomicInteger RENDER_DISTANCE = new AtomicInteger(DEFAULT_RENDER_DISTANCE);
     private static final AtomicBoolean FULLBRIGHT = new AtomicBoolean(true);
     private static final AtomicBoolean ALWAYS_SHOW_FLUIDS = new AtomicBoolean(true);
+    private static final AtomicBoolean PEEK_ENABLED = new AtomicBoolean(true);
+    private static final AtomicInteger PEEK_RADIUS = new AtomicInteger(DEFAULT_PEEK_RADIUS);
+    private static final AtomicInteger PEEK_OPACITY = new AtomicInteger(DEFAULT_PEEK_OPACITY);
+    private static final AtomicInteger PEEK_COLOR = new AtomicInteger(0x00E5FF);
     private static final AtomicReference<String> ACTIVE_PRESET = new AtomicReference<>(XrayPresets.DEFAULT);
 
     // Resolved, render-thread-fast view (see XrayState's doc comment on why
@@ -100,6 +112,10 @@ public final class XrayConfig {
         RENDER_DISTANCE.set(DEFAULT_RENDER_DISTANCE);
         FULLBRIGHT.set(true);
         ALWAYS_SHOW_FLUIDS.set(true);
+        PEEK_ENABLED.set(true);
+        PEEK_RADIUS.set(DEFAULT_PEEK_RADIUS);
+        PEEK_OPACITY.set(DEFAULT_PEEK_OPACITY);
+        PEEK_COLOR.set(0x00E5FF);
         applyPresetInternal(XrayPresets.DEFAULT);
         LOADED.set(true);
         saveNow();
@@ -109,6 +125,10 @@ public final class XrayConfig {
         RENDER_DISTANCE.set(clampDistance(data.renderDistance));
         FULLBRIGHT.set(data.fullbright);
         ALWAYS_SHOW_FLUIDS.set(data.alwaysShowFluids);
+        PEEK_ENABLED.set(data.peekEnabled);
+        PEEK_RADIUS.set(clampPeekRadius(data.peekRadius));
+        PEEK_OPACITY.set(clampPeekOpacity(data.peekOpacity));
+        PEEK_COLOR.set(data.peekColor != 0 ? data.peekColor : 0x00E5FF);
         ACTIVE_PRESET.set(data.activePreset != null ? data.activePreset : XrayPresets.CUSTOM);
         publishWhitelist(data.whitelist != null ? data.whitelist : XrayPresets.blockIds(XrayPresets.DEFAULT));
     }
@@ -124,6 +144,22 @@ public final class XrayConfig {
 
     public static boolean isFullbright() {
         return FULLBRIGHT.get();
+    }
+
+    public static boolean isPeekEnabled() {
+        return PEEK_ENABLED.get();
+    }
+
+    public static int getPeekRadius() {
+        return PEEK_RADIUS.get();
+    }
+
+    public static int getPeekOpacity() {
+        return PEEK_OPACITY.get();
+    }
+
+    public static int getPeekColor() {
+        return PEEK_COLOR.get();
     }
 
     public static boolean isAlwaysShowFluids() {
@@ -192,6 +228,32 @@ public final class XrayConfig {
         if (FULLBRIGHT.getAndSet(value) != value) {
             saveNow(); // discrete toggle, not a drag -- write immediately
             XrayClient.refreshRender();
+        }
+    }
+
+    public static void setPeekEnabled(boolean value) {
+        if (PEEK_ENABLED.getAndSet(value) != value) {
+            saveNow();
+        }
+    }
+
+    public static void setPeekRadius(int radius) {
+        int clamped = clampPeekRadius(radius);
+        if (PEEK_RADIUS.getAndSet(clamped) != clamped) {
+            markDirty();
+        }
+    }
+
+    public static void setPeekOpacity(int opacity) {
+        int clamped = clampPeekOpacity(opacity);
+        if (PEEK_OPACITY.getAndSet(clamped) != clamped) {
+            markDirty();
+        }
+    }
+
+    public static void setPeekColor(int color) {
+        if (PEEK_COLOR.getAndSet(color) != color) {
+            saveNow();
         }
     }
 
@@ -291,6 +353,14 @@ public final class XrayConfig {
         return Math.max(MIN_RENDER_DISTANCE, Math.min(MAX_RENDER_DISTANCE, value));
     }
 
+    private static int clampPeekRadius(int value) {
+        return Math.max(MIN_PEEK_RADIUS, Math.min(MAX_PEEK_RADIUS, value));
+    }
+
+    private static int clampPeekOpacity(int value) {
+        return Math.max(MIN_PEEK_OPACITY, Math.min(MAX_PEEK_OPACITY, value));
+    }
+
     // ---- persistence ----
 
     private static void markDirty() {
@@ -305,6 +375,10 @@ public final class XrayConfig {
         data.renderDistance = RENDER_DISTANCE.get();
         data.fullbright = FULLBRIGHT.get();
         data.alwaysShowFluids = ALWAYS_SHOW_FLUIDS.get();
+        data.peekEnabled = PEEK_ENABLED.get();
+        data.peekRadius = PEEK_RADIUS.get();
+        data.peekOpacity = PEEK_OPACITY.get();
+        data.peekColor = PEEK_COLOR.get();
         data.activePreset = ACTIVE_PRESET.get();
         data.whitelist = WHITELIST_IDS.get();
 
@@ -339,6 +413,10 @@ public final class XrayConfig {
         int renderDistance = DEFAULT_RENDER_DISTANCE;
         boolean fullbright = true;
         boolean alwaysShowFluids = true;
+        boolean peekEnabled = true;
+        int peekRadius = DEFAULT_PEEK_RADIUS;
+        int peekOpacity = DEFAULT_PEEK_OPACITY;
+        int peekColor = 0x00E5FF;
         String activePreset = XrayPresets.DEFAULT;
         Set<String> whitelist = new LinkedHashSet<>();
     }

@@ -18,17 +18,8 @@ import java.util.List;
 import java.util.Locale;
 
 /**
- * The in-game X-ray settings menu, opened/closed with Right Shift (see XrayKeybinds).
- *
- * Verified against real 26.2 API (Fabric docs "Custom Screens 26.2" / "Custom Widgets 26.2",
- * cross-checked against Sodium's own dev-branch VideoSettingsScreen): extend Screen, build
- * widgets in init() via addRenderableWidget, and override extractRenderState(graphics, mouseX,
- * mouseY, delta) -- NOT the pre-1.21.8 render(GuiGraphics, ...) -- calling super first so the
- * dimmed background and registered widgets still draw.
- *
- * All state lives in XrayConfig; this screen just reads/writes it and re-filters the block
- * list. Every change (block toggle, preset pick, fullbright, render distance drag) is already
- * persisted by XrayConfig itself, so there's nothing extra to save on close.
+ * Intuitive, optimized in-game X-ray control panel screen.
+ * Opened with Right Shift by default.
  */
 public final class XrayConfigScreen extends Screen {
     private static final class BlockSearchEntry {
@@ -45,17 +36,18 @@ public final class XrayConfigScreen extends Screen {
         }
     }
 
-    private static List<BlockSearchEntry> allBlockEntries; // built once; registry doesn't change mid-session
+    private static List<BlockSearchEntry> allBlockEntries;
 
     private EditBox searchBox;
     private BlockGridWidget grid;
     private Button categoryButton;
     private Button alwaysFluidsButton;
     private Button fullbrightButton;
+    private Button peekModeButton;
     private Button presetButton;
 
     private BlockCategory category = BlockCategory.ALL;
-    private int presetIndex = -1; // -1 == "Custom" / no fixed preset selected
+    private int presetIndex = -1;
 
     public XrayConfigScreen() {
         super(Component.literal("X-ray Settings"));
@@ -63,54 +55,70 @@ public final class XrayConfigScreen extends Screen {
 
     @Override
     protected void init() {
-        int panelWidth = Math.min(320, this.width - 20);
-        int panelHeight = Math.min(260, this.height - 20);
+        int panelWidth = Math.min(340, this.width - 20);
+        int panelHeight = Math.min(320, this.height - 20);
         int left = (this.width - panelWidth) / 2;
         int top = (this.height - panelHeight) / 2;
 
-        int y = top;
+        int y = top + 22; // Leave space for header text
 
+        // 1. Search Box
         this.searchBox = new EditBox(this.font, left, y, panelWidth, 18, Component.literal("Search blocks"));
-        this.searchBox.setHint(Component.literal("Search blocks..."));
+        this.searchBox.setHint(Component.literal("Search blocks by name or id..."));
         this.searchBox.setResponder(text -> refreshGrid(true));
         this.addRenderableWidget(this.searchBox);
         this.setInitialFocus(this.searchBox);
         y += 22;
 
+        // 2. Quick Category Bar
         int catButtonWidth = panelWidth - 40;
-        this.addRenderableWidget(Button.builder(Component.literal("<"), b -> cycleCategory(-1))
+        this.addRenderableWidget(Button.builder(Component.literal("◄"), b -> cycleCategory(-1))
                 .bounds(left, y, 18, 18).build());
-        this.categoryButton = Button.builder(Component.literal(this.category.displayName), b -> cycleCategory(1))
+        this.categoryButton = Button.builder(Component.literal("Category: " + this.category.displayName), b -> cycleCategory(1))
                 .bounds(left + 20, y, catButtonWidth, 18).build();
         this.addRenderableWidget(this.categoryButton);
-        this.addRenderableWidget(Button.builder(Component.literal(">"), b -> cycleCategory(1))
+        this.addRenderableWidget(Button.builder(Component.literal("►"), b -> cycleCategory(1))
                 .bounds(left + 22 + catButtonWidth, y, 18, 18).build());
         y += 22;
 
-        int gridHeight = panelHeight - 22 - 22 - 22 - 22 - 22 - 6;
+        // 3. Block Grid
+        int gridHeight = panelHeight - 22 - 22 - 22 - 22 - 22 - 22 - 22 - 10;
         this.grid = new BlockGridWidget(left, y, panelWidth, Math.max(54, gridHeight), this::onWhitelistToggled);
         this.addRenderableWidget(this.grid);
         y += this.grid.getHeight() + 4;
 
+        // 4. Sliders and Control Buttons
         this.addRenderableWidget(new RenderDistanceSlider(left, y, panelWidth, 18));
         y += 22;
 
         int halfWidth = (panelWidth - 2) / 2;
-        this.alwaysFluidsButton = Button.builder(alwaysFluidsLabel(), b -> toggleAlwaysFluids())
+
+        this.peekModeButton = Button.builder(peekModeLabel(), b -> togglePeekMode())
                 .bounds(left, y, halfWidth, 18).build();
-        this.addRenderableWidget(this.alwaysFluidsButton);
+        this.addRenderableWidget(this.peekModeButton);
+
+        this.addRenderableWidget(new PeekRadiusSlider(left + halfWidth + 2, y, halfWidth, 18));
+        y += 22;
+
+        this.addRenderableWidget(new PeekOpacitySlider(left, y, halfWidth, 18));
 
         this.fullbrightButton = Button.builder(fullbrightLabel(), b -> toggleFullbright())
                 .bounds(left + halfWidth + 2, y, halfWidth, 18).build();
         this.addRenderableWidget(this.fullbrightButton);
         y += 22;
 
-        this.presetButton = Button.builder(presetLabel(), b -> cyclePreset())
+        this.alwaysFluidsButton = Button.builder(alwaysFluidsLabel(), b -> toggleAlwaysFluids())
                 .bounds(left, y, halfWidth, 18).build();
-        this.addRenderableWidget(this.presetButton);
+        this.addRenderableWidget(this.alwaysFluidsButton);
 
-        this.addRenderableWidget(Button.builder(Component.literal("Close"), b -> this.onClose())
-                .bounds(left + halfWidth + 2, y, halfWidth, 18).build());
+        this.presetButton = Button.builder(presetLabel(), b -> cyclePreset())
+                .bounds(left + halfWidth + 2, y, halfWidth, 18).build();
+        this.addRenderableWidget(this.presetButton);
+        y += 22;
+
+        // 5. Close Button
+        this.addRenderableWidget(Button.builder(Component.literal("Close Settings"), b -> this.onClose())
+                .bounds(left, y, panelWidth, 18).build());
 
         if (allBlockEntries == null) {
             loadAllBlocks();
@@ -120,8 +128,6 @@ public final class XrayConfigScreen extends Screen {
 
     private static void loadAllBlocks() {
         List<BlockSearchEntry> list = new ArrayList<>();
-        // Pre-compute block ID, display name lower case, and category classification once
-        // to make GUI searching and filtering 100% allocation-free during interaction.
         for (Block block : BuiltInRegistries.BLOCK) {
             if (block == Blocks.AIR) {
                 continue;
@@ -139,17 +145,13 @@ public final class XrayConfigScreen extends Screen {
         BlockCategory[] values = BlockCategory.values();
         int next = (this.category.ordinal() + direction + values.length) % values.length;
         this.category = values[next];
-        this.categoryButton.setMessage(Component.literal(this.category.displayName));
+        this.categoryButton.setMessage(Component.literal("Category: " + this.category.displayName));
         refreshGrid(true);
     }
 
     private void onWhitelistToggled() {
         this.presetButton.setMessage(presetLabel());
         refreshGrid(false);
-    }
-
-    private void refreshGrid() {
-        refreshGrid(true);
     }
 
     private void refreshGrid(boolean resetScroll) {
@@ -200,11 +202,20 @@ public final class XrayConfigScreen extends Screen {
         return Component.literal("Fullbright: " + (XrayConfig.isFullbright() ? "ON" : "OFF"));
     }
 
+    private void togglePeekMode() {
+        XrayConfig.setPeekEnabled(!XrayConfig.isPeekEnabled());
+        this.peekModeButton.setMessage(peekModeLabel());
+    }
+
+    private Component peekModeLabel() {
+        return Component.literal("Peek Mode: " + (XrayConfig.isPeekEnabled() ? "ON" : "OFF"));
+    }
+
     private void cyclePreset() {
         this.presetIndex = (this.presetIndex + 1) % XrayPresets.SELECTABLE.length;
         XrayConfig.applyPreset(XrayPresets.SELECTABLE[this.presetIndex]);
         this.presetButton.setMessage(presetLabel());
-        refreshGrid(true); // whitelist membership (cell highlighting) just changed wholesale
+        refreshGrid(true);
     }
 
     private Component presetLabel() {
@@ -214,10 +225,14 @@ public final class XrayConfigScreen extends Screen {
     @Override
     public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float delta) {
         super.extractRenderState(graphics, mouseX, mouseY, delta);
+
+        // Header Title
         graphics.text(this.font, this.title, (this.width - this.font.width(this.title)) / 2, 4, 0xFFFFFFFF, true);
+
+        // Subtitle badge showing active whitelisted block count
         int whitelistedCount = XrayConfig.getWhitelistIds().size();
         Component subTitle = Component.literal("Whitelisted: " + whitelistedCount + " blocks");
-        graphics.text(this.font, subTitle, (this.width - this.font.width(subTitle)) / 2, 16, 0xFFAAAA00, true);
+        graphics.text(this.font, subTitle, (this.width - this.font.width(subTitle)) / 2, 14, 0xFF00FF66, true);
     }
 
     @Override
@@ -228,6 +243,6 @@ public final class XrayConfigScreen extends Screen {
 
     @Override
     public boolean isPauseScreen() {
-        return false; // stay open (and keep rendering the world underneath) on singleplayer too
+        return false;
     }
 }

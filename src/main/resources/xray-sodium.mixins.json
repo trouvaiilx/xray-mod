@@ -7,7 +7,9 @@
     "BlockRendererMixin",
     "AbstractBlockRenderContextMixin",
     "DefaultFluidRendererMixin",
-    "ChunkBuilderMeshingTaskMixin"
+    "ChunkBuilderMeshingTaskMixin",
+    "BlockEntityRenderDispatcherMixin",
+    "EntityRenderDispatcherMixin"
   ],
   "injectors": {
     "defaultRequire": 1

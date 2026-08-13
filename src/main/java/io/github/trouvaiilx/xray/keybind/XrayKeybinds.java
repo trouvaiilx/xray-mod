@@ -31,6 +31,8 @@ import net.minecraft.resources.Identifier;
  */
 public final class XrayKeybinds {
     private static KeyMapping openMenuKey;
+    private static KeyMapping toggleXrayKey;
+    private static KeyMapping togglePeekKey;
 
     private XrayKeybinds() {
     }
@@ -46,11 +48,56 @@ public final class XrayKeybinds {
                 category
         ));
 
+        toggleXrayKey = KeyMappingHelper.registerKeyMapping(new KeyMapping(
+                "key." + XrayClient.MOD_ID + ".toggle_xray",
+                InputConstants.Type.KEYSYM,
+                InputConstants.KEY_BACKSLASH,
+                category
+        ));
+
+        togglePeekKey = KeyMappingHelper.registerKeyMapping(new KeyMapping(
+                "key." + XrayClient.MOD_ID + ".toggle_peek",
+                InputConstants.Type.KEYSYM,
+                InputConstants.KEY_APOSTROPHE,
+                category
+        ));
+
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
             while (openMenuKey.consumeClick()) {
                 toggleMenu(client);
             }
+            while (toggleXrayKey.consumeClick()) {
+                toggleXray(client);
+            }
+            while (togglePeekKey.consumeClick()) {
+                togglePeek(client);
+            }
         });
+    }
+
+    private static void toggleXray(Minecraft client) {
+        if (!FabricLoader.getInstance().isModLoaded("sodium")) {
+            if (client.player != null) {
+                client.player.sendSystemMessage(Component.literal(
+                        "§c[X-Ray] Sodium is not installed! X-ray rendering requires the Sodium mod to be installed."));
+            }
+            return;
+        }
+        boolean enabled = io.github.trouvaiilx.xray.XrayState.toggle();
+        XrayClient.refreshRender();
+        if (client.player != null) {
+            client.player.sendSystemMessage(Component.literal(
+                    "§a[X-Ray] X-ray " + (enabled ? "enabled" : "disabled")));
+        }
+    }
+
+    private static void togglePeek(Minecraft client) {
+        boolean peek = !io.github.trouvaiilx.xray.config.XrayConfig.isPeekEnabled();
+        io.github.trouvaiilx.xray.config.XrayConfig.setPeekEnabled(peek);
+        if (client.player != null) {
+            client.player.sendSystemMessage(Component.literal(
+                    "§a[X-Ray] Peek Mode " + (peek ? "enabled" : "disabled")));
+        }
     }
 
     private static void toggleMenu(Minecraft client) {

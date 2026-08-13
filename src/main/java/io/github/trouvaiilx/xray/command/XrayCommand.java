@@ -60,6 +60,18 @@ public final class XrayCommand {
                                     .executes(ctx -> setAndRespond(ctx, true)))
                             .then(ClientCommands.literal("off")
                                     .executes(ctx -> setAndRespond(ctx, false)))
+                            .then(ClientCommands.literal("peek")
+                                    .executes(XrayCommand::togglePeek)
+                                    .then(ClientCommands.literal("on")
+                                            .executes(ctx -> setPeekAndRespond(ctx, true)))
+                                    .then(ClientCommands.literal("off")
+                                            .executes(ctx -> setPeekAndRespond(ctx, false)))
+                                    .then(ClientCommands.literal("radius")
+                                            .then(ClientCommands.argument("value", com.mojang.brigadier.arguments.IntegerArgumentType.integer(1, 10))
+                                                    .executes(XrayCommand::setPeekRadius)))
+                                    .then(ClientCommands.literal("opacity")
+                                            .then(ClientCommands.argument("value", com.mojang.brigadier.arguments.IntegerArgumentType.integer(1, 100))
+                                                    .executes(XrayCommand::setPeekOpacity))))
             );
 
             // Legacy alias -- kept for the "/trigger xray" muscle memory, but its
@@ -105,6 +117,33 @@ public final class XrayCommand {
         XrayState.setEnabled(value);
         forceChunkRefresh();
         feedback(ctx, value);
+        return 1;
+    }
+
+    private static int togglePeek(CommandContext<FabricClientCommandSource> ctx) {
+        boolean peek = !io.github.trouvaiilx.xray.config.XrayConfig.isPeekEnabled();
+        io.github.trouvaiilx.xray.config.XrayConfig.setPeekEnabled(peek);
+        ctx.getSource().sendFeedback(Component.literal("Peek Mode " + (peek ? "enabled" : "disabled")));
+        return 1;
+    }
+
+    private static int setPeekAndRespond(CommandContext<FabricClientCommandSource> ctx, boolean value) {
+        io.github.trouvaiilx.xray.config.XrayConfig.setPeekEnabled(value);
+        ctx.getSource().sendFeedback(Component.literal("Peek Mode " + (value ? "enabled" : "disabled")));
+        return 1;
+    }
+
+    private static int setPeekRadius(CommandContext<FabricClientCommandSource> ctx) {
+        int radius = com.mojang.brigadier.arguments.IntegerArgumentType.getInteger(ctx, "value");
+        io.github.trouvaiilx.xray.config.XrayConfig.setPeekRadius(radius);
+        ctx.getSource().sendFeedback(Component.literal("Peek Radius set to " + radius + " blocks"));
+        return 1;
+    }
+
+    private static int setPeekOpacity(CommandContext<FabricClientCommandSource> ctx) {
+        int opacity = com.mojang.brigadier.arguments.IntegerArgumentType.getInteger(ctx, "value");
+        io.github.trouvaiilx.xray.config.XrayConfig.setPeekOpacity(opacity);
+        ctx.getSource().sendFeedback(Component.literal("Peek Opacity set to " + opacity + "%"));
         return 1;
     }
 
