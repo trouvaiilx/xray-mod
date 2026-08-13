@@ -122,7 +122,7 @@ public final class XrayCommand {
      */
     private static void forceChunkRefresh() {
         if (SODIUM_LOADED) {
-            com.example.xray.XrayClient.refreshRender();
+            SodiumRenderRefresher.refreshAllChunks();
         }
     }
 
