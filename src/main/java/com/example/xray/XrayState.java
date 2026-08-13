@@ -15,6 +15,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * XrayConfig (persisted, GUI-editable, backed by the live block registry) -- this class now
  * just forwards isWhitelisted() there so the mixins didn't all need to change their imports.
  */
+import net.fabricmc.loader.api.FabricLoader;
+
 public final class XrayState {
     private static final AtomicBoolean ENABLED = new AtomicBoolean(false);
 
@@ -22,6 +24,9 @@ public final class XrayState {
     }
 
     public static boolean isEnabled() {
+        if (!FabricLoader.getInstance().isModLoaded("sodium")) {
+            return false;
+        }
         return ENABLED.get();
     }
 

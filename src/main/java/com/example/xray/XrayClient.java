@@ -51,17 +51,10 @@ public final class XrayClient implements ClientModInitializer {
     }
 
     public static void refreshRender() {
-        if (!XrayState.isEnabled()) {
+        if (!XrayState.isEnabled() || !FabricLoader.getInstance().isModLoaded("sodium")) {
             return;
         }
-        if (FabricLoader.getInstance().isModLoaded("sodium")) {
-            SodiumRenderRefresher.refreshAllChunks();
-        } else {
-            var client = Minecraft.getInstance();
-            if (client.levelRenderer != null) {
-                client.levelRenderer.resetLevelRenderData();
-            }
-        }
+        SodiumRenderRefresher.refreshAllChunks();
     }
 }
 

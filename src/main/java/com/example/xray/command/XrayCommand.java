@@ -75,6 +75,10 @@ public final class XrayCommand {
     }
 
     private static int setAndRespond(CommandContext<FabricClientCommandSource> ctx, boolean value) {
+        if (!SODIUM_LOADED) {
+            sendSodiumMissingWarning(ctx);
+            return 0;
+        }
         XrayState.setEnabled(value);
         forceChunkRefresh();
         feedback(ctx, value);
@@ -82,6 +86,10 @@ public final class XrayCommand {
     }
 
     private static int toggle(CommandContext<FabricClientCommandSource> ctx) {
+        if (!SODIUM_LOADED) {
+            sendSodiumMissingWarning(ctx);
+            return 0;
+        }
         boolean nowEnabled = XrayState.toggle();
         forceChunkRefresh();
         feedback(ctx, nowEnabled);
@@ -89,11 +97,20 @@ public final class XrayCommand {
     }
 
     private static int setExplicit(CommandContext<FabricClientCommandSource> ctx) {
+        if (!SODIUM_LOADED) {
+            sendSodiumMissingWarning(ctx);
+            return 0;
+        }
         boolean value = BoolArgumentType.getBool(ctx, "state");
         XrayState.setEnabled(value);
         forceChunkRefresh();
         feedback(ctx, value);
         return 1;
+    }
+
+    private static void sendSodiumMissingWarning(CommandContext<FabricClientCommandSource> ctx) {
+        ctx.getSource().sendFeedback(Component.literal(
+                "§c[X-Ray] Sodium is not installed! X-ray rendering requires the Sodium mod to be installed."));
     }
 
     /**
