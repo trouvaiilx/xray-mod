@@ -49,7 +49,7 @@ Enhancement suggestions are welcome! When opening a feature request:
    git checkout -b feature/your-feature-name
    ```
 2. **Make your changes** adhering to the project's coding standards.
-3. **Test thoroughly** using `.\gradlew.bat runClient` to ensure Sodium rendering and GUI interactions work properly.
+3. **Test thoroughly** using `.\gradlew.bat runClient` to ensure Sodium rendering, entity culling, and GUI interactions work properly.
 4. **Submit a Pull Request** targeting the `main` branch with a clear description of your changes.
 
 ---
@@ -88,10 +88,12 @@ The codebase is organized under `src/main/java/io/github/trouvaiilx/xray/`:
 | --- | --- |
 | `XrayClient.java` | Main client mod entrypoint, keybind registration, and command initialization. |
 | `XrayState.java` | Centralized runtime toggle state, whitelist management, and preset configurations. |
-| `config/` | Persistent JSON configuration handling (`xray-mod.json`). |
-| `gui/` | Custom settings menu, search filter, and interactive block whitelist grid. |
+| `config/` | Persistent JSON configuration handling (`xray-mod.json`), sliders, and presets. |
+| `gui/` | Custom settings menu (`XrayConfigScreen`), interactive block grid (`BlockGridWidget`), and sliders. |
+| `render/` | High-performance, allocation-free Peek Mode wireframe renderer (`XrayPeekRenderer`). |
+| `util/` | Entity container classification (`ContainerEntityClassifier`) and lightmap utility helpers. |
 | `compat/` | Integration hooks for Sodium's chunk rendering pipeline and fullbright logic. |
-| `mixin/` | Mixin classes injecting into Minecraft and Sodium rendering routines. |
+| `mixin/` | Mixin classes injecting into Sodium chunk meshing, BlockEntityRenderDispatcher, and EntityRenderDispatcher. |
 
 ---
 
@@ -106,4 +108,4 @@ If you are contributing an update for a new Minecraft, Sodium, or Fabric version
 - **Java Version**: Code must target Java 25 compatibility.
 - **Formatting**: Maintain consistent indentation (4 spaces) and standard Java code conventions.
 - **Sodium Guard**: Ensure all X-Ray features check for Sodium availability to prevent crash regressions when Sodium is absent.
-- **No Unnecessary Dependencies**: Keep external dependencies minimal, relying on Fabric API and Sodium.
+- **Allocation-Free Hot Path**: Keep spatial render scans in `render/` and mixins free of per-frame object allocations.

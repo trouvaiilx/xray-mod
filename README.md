@@ -6,7 +6,7 @@
   [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
   [![Ko-fi](https://img.shields.io/badge/Ko--fi-Support-ff5e5b?logo=ko-fi&logoColor=white)](https://ko-fi.com/trouvaiilx)
 
-  <p>Client-side Fabric mod for <b>Minecraft 26.2</b> by <b><a href="https://github.com/trouvaiilx">trouvaiilx</a></b>: toggleable X-ray featuring an in-game configuration GUI and Sodium (<code>mc26.2-0.9.1-fabric</code>) rendering hooks.</p>
+  <p>Client-side Fabric mod for <b>Minecraft 26.2</b> by <b><a href="https://github.com/trouvaiilx">trouvaiilx</a></b>: toggleable X-ray featuring customizable block peek mode, chest/container entity culling, fullbright, in-game GUI, and Sodium (<code>mc26.2-0.9.1-fabric</code>) rendering hooks.</p>
 </div>
 
 > **Sodium Required**: This mod **ONLY works when the [Sodium](https://modrinth.com/mod/sodium) mod is installed**. Sodium provides the chunk rendering pipeline that this mod hooks into to hide non-whitelisted blocks and apply fullbright lighting. Without Sodium installed, X-ray rendering will **NOT** function (attempting to use commands or keybinds will display a warning message in chat).
@@ -17,22 +17,28 @@
 
 ## Features
 
+- **Customizable Peek Mode**:
+  - Outlines local unmined boundary blocks, non-full blocks (slabs, stairs, fences), and container entities (*Chest Boats*, *Minecarts with Chests*, *Chest Rafts*, *Hoppers*, *Spawners*) with customizable wireframe bounding boxes.
+  - Enabled by default with a soft cyan (`#00E5FF`) stroke color.
+  - Configurable **Peek Radius** (1–10 blocks) and **Peek Opacity** (1%–100%) via GUI sliders or `/xray peek` commands.
+- **Chest & Container Entity Integration**:
+  - Dynamically intercepts `BlockEntityRenderDispatcher` and `EntityRenderDispatcher`.
+  - Non-whitelisted chests, trapped chests, vaults, shulker boxes, barrels, chest minecarts, and chest boats are **culled and hidden** through walls when X-ray is enabled.
+  - Whitelisted chests and container entities receive **Fullbright** lightmap coordinates when Fullbright is active.
 - **In-Game Settings GUI**: Press **Right Shift** (or configure in Options > Controls) to open the interactive settings menu.
-- **Commands**: `/xray`, `/xray toggle`, `/xray on`, `/xray off` with full tab-completion (plus `/trigger xray [true|false]` as a legacy alias).
-- **Search & Category Filters**: Easily filter blocks by category (*All Blocks*, *Ores*, *Nether*, *End*, *Fluids*, *Utility*) or search by block ID and localized name.
-- **Interactive Block Grid**:
-  - Creative-inventory style icon grid with hover tooltips and green highlights for whitelisted blocks.
-  - In the **All Blocks** category, whitelisted blocks automatically sort to the top.
-  - Toggling whitelist items automatically updates the preset label to `Preset: Custom` in real time while preserving grid scroll position.
+  - Features real-time vertical scrollbar dragging, emerald cell whitelist highlights (`#00FF66`), active whitelisted block counter badge, and pre-cached icon rendering for zero-lag scrolling.
+- **Keybind Shortcuts**:
+  - **Backslash (`\`)**: Toggle X-Ray ON / OFF (triggers immediate live chunk re-render).
+  - **Apostrophe (`'`)**: Toggle Peek Mode ON / OFF.
+  - **Right Shift**: Open Settings GUI.
+- **Commands**: `/xray`, `/xray toggle`, `/xray peek [on|off]`, `/xray peek radius <1-10>`, `/xray peek opacity <1-100>` with full tab-completion.
+- **Search & Category Filters**: Easily filter blocks by category (*All*, *Ores*, *Storage*, *Redstone*, *Structures*, *Nether*, *End*, *Underground*, *Natural*, *Building*, *Other*) or search by block ID and localized name.
 - **Preset System**: Quick-select presets (*Default*, *Ores*, *Fluids*, *Valuables*, or *Custom*).
 - **X-Ray Render Distance**:
   - **Non-whitelisted blocks** (stone, dirt, etc.) are always rendered as transparent (hidden) across the entire view distance.
   - **Whitelisted blocks** (ores, chests, fluids) render only within the configured X-ray render distance (2–32 chunks).
-  - **Dynamic Movement Updating**: Automatically tracks player chunk boundary crossings (`16`-block steps) to update the X-ray view as you travel across the world.
-- **Fullbright Lighting**: Forces fullbright lightmap values and disables ambient occlusion shading for whitelisted blocks and fluids when enabled.
-- **Always Fluids Safety Toggle**: A dedicated toggle (`Always Fluids: ON/OFF`) that locks water and lava as whitelisted, preventing accidental removal.
-- **Instant Live Update**: Any GUI setting change or menu close immediately re-meshes chunk rendering without requiring an off/on toggle.
-- **Sodium Requirement Guard**: Safe fallback check: if Sodium is not installed, executing commands or pressing the keybind safely displays a clear warning message in chat (`Sodium is not installed! X-ray rendering requires Sodium.`) without crashing or corrupting level render data.
+- **Fullbright Lighting**: Forces fullbright lightmap values and disables ambient occlusion shading for whitelisted blocks, block entities, container entities, and fluids.
+- **Always Fluids Safety Toggle**: A dedicated toggle (`Always Fluids: ON/OFF`) locking water and lava as whitelisted to prevent accidental removal.
 - **Persistence**: Auto-saves configuration to `config/xray-mod.json` with write-then-atomic-rename safety.
 
 ---
@@ -48,7 +54,7 @@
   <table>
     <tr>
       <td align="center" width="50%">
-        <b>Overworld X-Ray</b><br/>
+        <b>Overworld X-Ray & Peek Mode</b><br/>
         <img src="docs/images/overworld.png" alt="Overworld X-Ray" width="400" />
       </td>
       <td align="center" width="50%">
@@ -65,9 +71,12 @@
 
 | Feature | Input / Command | Description |
 | --- | --- | --- |
-| **Toggle X-Ray** | `/xray` / `/xray toggle` / `/xray on` / `/xray off` | Turns X-ray on or off with immediate chunk re-meshing |
-| **Open Menu** | **Right Shift** | Opens the interactive settings GUI |
-| **Legacy Alias** | `/trigger xray [true or false]` | Client-side command alias for scoreboard trigger compatibility |
+| **Toggle X-Ray** | `\` or `/xray` / `/xray toggle` | Toggles X-ray on/off with immediate live chunk re-render |
+| **Toggle Peek Mode** | `'` or `/xray peek [on/off]` | Toggles wireframe boundary outlines for blocks and container entities |
+| **Open Menu** | **Right Shift** | Opens the interactive settings GUI menu |
+| **Set Peek Radius** | `/xray peek radius <1-10>` | Adjusts Peek Mode outline radius (1 to 10 blocks) |
+| **Set Peek Opacity** | `/xray peek opacity <1-100>` | Adjusts Peek Mode line opacity percentage (1% to 100%) |
+| **Legacy Alias** | `/trigger xray [true/false]` | Client-side command alias for scoreboard trigger compatibility |
 
 ---
 
@@ -77,8 +86,6 @@
 - **Minecraft**: 26.2
 - **Fabric Loader**: 0.19.3+
 - **Java JDK**: 25 (Required for Minecraft 26.1+)
-
-If Sodium is missing, X-ray visuals will **NOT** render, and attempting to toggle X-ray or open the settings menu will display a warning notice in chat.
 
 ---
 
