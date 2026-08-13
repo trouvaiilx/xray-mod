@@ -1,11 +1,13 @@
 package com.example.xray.mixin.sodium;
 
 import com.example.xray.XrayState;
+import com.example.xray.config.XrayConfig;
 import net.caffeinemc.mods.sodium.client.model.light.LightMode;
 import net.caffeinemc.mods.sodium.client.model.light.data.QuadLightData;
 import net.caffeinemc.mods.sodium.client.render.model.AbstractBlockRenderContext;
 import net.caffeinemc.mods.sodium.client.render.model.MutableQuadViewImpl;
 import net.caffeinemc.mods.sodium.client.render.model.SodiumShadeMode;
+import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.util.LightCoordsUtil;
 import net.minecraft.world.level.block.state.BlockState;
@@ -40,11 +42,25 @@ public abstract class AbstractBlockRenderContextMixin {
     @Shadow
     protected QuadLightData quadLightData;
 
+    @Shadow
+    protected BlockPos pos;
+
     @Inject(method = "isFaceCulled", at = @At("HEAD"), cancellable = true)
     private void xray$neverCullWhitelistedBlocks(@Nullable Direction face, CallbackInfoReturnable<Boolean> cir) {
-        if (this.state != null && XrayState.isEnabled() && XrayState.isWhitelisted(this.state.getBlock())) {
+        if (this.state != null && XrayState.isEnabled() && XrayState.isWhitelisted(this.state.getBlock())
+                && xray$withinDistance()) {
             cir.setReturnValue(false);
         }
+    }
+
+    /**
+     * Shared by both injectors below. `pos` is the block currently being processed (see this
+     * class's own top-of-file doc comment on `state` for why it's always valid here) -- outside
+     * the configured X-ray render distance, ore gets its completely normal Sodium treatment:
+     * real face culling, real AO shading, same as with the mod off.
+     */
+    private boolean xray$withinDistance() {
+        return this.pos == null || XrayConfig.isWithinXrayDistance(this.pos.getX(), this.pos.getZ());
     }
 
     /**
@@ -67,7 +83,11 @@ public abstract class AbstractBlockRenderContextMixin {
      */
     @Inject(method = "shadeQuad", at = @At("RETURN"))
     private void xray$forceFullbrightForWhitelistedBlocks(MutableQuadViewImpl quad, LightMode lightMode, boolean emissive, SodiumShadeMode shadeMode, CallbackInfo ci) {
-        if (this.state != null && XrayState.isEnabled() && XrayState.isWhitelisted(this.state.getBlock())) {
+        // Fullbright is its own global config toggle (XrayConfig#isFullbright), separate from
+        // X-ray being on at all -- with it off, whitelisted blocks keep this fix's OTHER half
+        // (face-culling / occlusion) but light exactly like vanilla, per the product spec.
+        if (this.state != null && XrayState.isEnabled() && XrayConfig.isFullbright()
+                && XrayState.isWhitelisted(this.state.getBlock()) && xray$withinDistance()) {
             for (int i = 0; i < 4; i++) {
                 quad.setLight(i, LightCoordsUtil.FULL_BRIGHT);
                 this.quadLightData.br[i] = 1.0F;

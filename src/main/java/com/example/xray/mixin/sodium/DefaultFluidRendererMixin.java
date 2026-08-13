@@ -1,6 +1,7 @@
 package com.example.xray.mixin.sodium;
 
 import com.example.xray.XrayState;
+import com.example.xray.config.XrayConfig;
 import net.caffeinemc.mods.sodium.client.render.chunk.compile.pipeline.DefaultFluidRenderer;
 import net.caffeinemc.mods.sodium.client.model.color.ColorProvider;
 import net.caffeinemc.mods.sodium.client.model.light.LightPipeline;
@@ -51,7 +52,7 @@ public abstract class DefaultFluidRendererMixin {
 
     @Inject(method = "isFullBlockFluidSideVisible", at = @At("HEAD"), cancellable = true)
     private void xray$alwaysShowFluidSide(BlockGetter view, BlockPos selfPos, Direction facing, FluidState fluid, CallbackInfoReturnable<Boolean> cir) {
-        if (XrayState.isEnabled()) {
+        if (XrayState.isEnabled() && XrayConfig.isWithinXrayDistance(selfPos.getX(), selfPos.getZ())) {
             BlockState neighborState = view.getBlockState(selfPos.relative(facing));
 
             // Don't render internal faces between the same fluid (e.g. water next to water in oceans)
@@ -75,6 +76,17 @@ public abstract class DefaultFluidRendererMixin {
      * convenience wrapper that just forwards into this 4-arg root implementation) -- Mixin needs
      * the full bytecode descriptor here to target the correct overload unambiguously rather than
      * erroring on "multiple candidate methods found."
+     *
+     * NOTE on X-ray render distance here: unlike the other two fluid/block mixins above and
+     * below, neither this method nor isFluidSelfVisible receives a BlockPos -- only
+     * BlockStates -- so there's no position to check against XrayConfig#isWithinXrayDistance
+     * without a much more invasive change (capturing a local variable from
+     * ChunkBuilderMeshingTask's meshing loop across a different mixin target class). Practical
+     * impact is small and cosmetic only: a fluid pocket sitting exactly on the X-ray distance
+     * boundary may keep an extra exposed face or two just past the configured distance, in a
+     * mod whose entire purpose is already "show things through walls." Everything else (which
+     * blocks get hidden at all, ore/fluid fullbright, the fluid checks that DO have a pos)
+     * still respects the distance setting precisely.
      */
     @Inject(method = "isFluidSideExposed(Lnet/minecraft/world/level/block/state/BlockState;Lnet/minecraft/world/level/block/state/BlockState;Lnet/minecraft/core/Direction;F)Z",
             at = @At("HEAD"), cancellable = true)
@@ -103,7 +115,8 @@ public abstract class DefaultFluidRendererMixin {
      */
     @Inject(method = "updateQuad", at = @At("RETURN"))
     private void xray$forceFullbrightForFluids(ModelQuadViewMutable quad, LevelSlice level, BlockPos pos, LightPipeline lighter, Direction dir, ModelQuadFacing facing, float brightness, ColorProvider<FluidState> colorProvider, FluidState fluidState, CallbackInfo ci) {
-        if (XrayState.isEnabled()) {
+        if (XrayState.isEnabled() && XrayConfig.isFullbright()
+                && XrayConfig.isWithinXrayDistance(pos.getX(), pos.getZ())) {
             for (int i = 0; i < 4; i++) {
                 this.quadLightData.lm[i] = LightCoordsUtil.FULL_BRIGHT;
                 this.brightness[i] = 1.0F;
