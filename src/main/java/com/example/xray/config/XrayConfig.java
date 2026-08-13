@@ -6,7 +6,6 @@ import com.google.gson.GsonBuilder;
 import com.google.gson.JsonParseException;
 import it.unimi.dsi.fastutil.objects.ReferenceOpenHashSet;
 import net.fabricmc.loader.api.FabricLoader;
-import net.minecraft.client.Minecraft;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.Identifier;
 import net.minecraft.world.level.block.Block;
@@ -64,7 +63,23 @@ public final class XrayConfig {
     private static final AtomicBoolean DIRTY = new AtomicBoolean(false);
     private static final AtomicBoolean LOADED = new AtomicBoolean(false);
 
+    // Cached player chunk coordinates populated from the main client thread every tick.
+    // Worker threads read these values atomically instead of accessing Minecraft.getInstance().player.
+    private static final AtomicInteger PLAYER_CHUNK_X = new AtomicInteger(0);
+    private static final AtomicInteger PLAYER_CHUNK_Z = new AtomicInteger(0);
+    private static final AtomicBoolean HAS_PLAYER_POS = new AtomicBoolean(false);
+
     private XrayConfig() {
+    }
+
+    public static void updatePlayerChunkPos(int chunkX, int chunkZ) {
+        PLAYER_CHUNK_X.set(chunkX);
+        PLAYER_CHUNK_Z.set(chunkZ);
+        HAS_PLAYER_POS.set(true);
+    }
+
+    public static void clearPlayerChunkPos() {
+        HAS_PLAYER_POS.set(false);
     }
 
     // ---- lifecycle ----
@@ -142,23 +157,19 @@ public final class XrayConfig {
      * a Minecraft distance slider to behave. Blocks/sections outside this range render exactly
      * as they would with the mod off; only the ones inside it get X-rayed.
      *
-     * Reads Minecraft.getInstance().player from a worker thread, same as
-     * SodiumRenderRefresher/XrayCommand already do elsewhere in this mod -- a plain field read
-     * of a value that only changes a handful of times a second, not a correctness-critical
-     * transaction, so no synchronization beyond that field already being effectively volatile
-     * (Minecraft assigns a new Player reference on join/respawn, doesn't mutate one in place).
+     * Reads thread-safe cached player chunk coordinates (populated on the main client thread)
+     * so Sodium worker threads never access Minecraft.getInstance().player directly.
      */
     public static boolean isWithinXrayDistance(int blockX, int blockZ) {
         return isChunkWithinXrayDistance(blockX >> 4, blockZ >> 4);
     }
 
     public static boolean isChunkWithinXrayDistance(int chunkX, int chunkZ) {
-        var player = Minecraft.getInstance().player;
-        if (player == null) {
-            return true; // fail open -- never silently hide things because of a null player
+        if (!HAS_PLAYER_POS.get()) {
+            return true; // fail open -- never silently hide things because of an uncached player position
         }
-        int px = player.blockPosition().getX() >> 4;
-        int pz = player.blockPosition().getZ() >> 4;
+        int px = PLAYER_CHUNK_X.get();
+        int pz = PLAYER_CHUNK_Z.get();
         int distance = RENDER_DISTANCE.get();
         return Math.max(Math.abs(chunkX - px), Math.abs(chunkZ - pz)) <= distance;
     }
@@ -167,9 +178,10 @@ public final class XrayConfig {
 
     public static void setRenderDistance(int chunks) {
         int clamped = clampDistance(chunks);
-        if (RENDER_DISTANCE.getAndSet(clamped) != clamped) {
+        int oldDistance = RENDER_DISTANCE.getAndSet(clamped);
+        if (oldDistance != clamped) {
             markDirty(); // dragged live -- debounced, see #tick()
-            XrayClient.refreshRender();
+            XrayClient.refreshRender(Math.max(oldDistance, clamped));
         }
     }
 
