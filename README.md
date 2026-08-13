@@ -82,7 +82,7 @@ If Sodium is missing, X-ray visuals will **NOT** render, and attempting to toggl
 
 ---
 
-## Building
+## Building & Updating
 
 Ensure `JAVA_HOME` is pointed to a JDK 25 installation:
 
@@ -90,7 +90,11 @@ Ensure `JAVA_HOME` is pointed to a JDK 25 installation:
 ./gradlew build
 ```
 
-The compiled mod JAR will be output to `build/libs/xray-mod-1.5.0.jar`.
+The compiled mod JAR will be output to `build/libs/xray-mod-<version>+<mc_version>.jar`.
+
+For detailed guidelines on updating the mod for new Minecraft/Sodium versions or contributing changes, see:
+- [Updating Guide](docs/UPDATING.md)
+- [Contributing Guidelines](CONTRIBUTING.md)
 
 ---
 
