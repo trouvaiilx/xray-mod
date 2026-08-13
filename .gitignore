@@ -8,6 +8,7 @@ out/
 *.iml
 *.ipr
 *.iws
+.vscode/
 
 # Loom / run directory (holds a real Minecraft install + your dev world)
 run/
