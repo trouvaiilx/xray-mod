@@ -8,6 +8,9 @@ on:
 jobs:
   check-updates:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write
 
     steps:
       - name: Checkout repository
@@ -26,11 +29,11 @@ jobs:
           # Fetch latest stable Minecraft version from Fabric Meta API
           LATEST_MC=$(curl -s https://meta.fabricmc.net/v2/versions/game | jq -r '[.[] | select(.stable == true)][0].version')
           
-          # Fetch latest Sodium version from Modrinth API
-          LATEST_SODIUM=$(curl -s "https://api.modrinth.com/v2/project/sodium/version" | jq -r '.[0].version_number')
+          # Fetch latest STABLE Sodium release for FABRIC from Modrinth API (filtering out alpha, beta, and neoforge builds)
+          LATEST_SODIUM=$(curl -s "https://api.modrinth.com/v2/project/sodium/version?loaders=%5B%22fabric%22%5D&version_types=%5B%22release%22%5D" | jq -r '.[0].version_number')
 
           echo "Latest stable Minecraft version: $LATEST_MC"
-          echo "Latest Sodium release on Modrinth: $LATEST_SODIUM"
+          echo "Latest stable Sodium release for Fabric: $LATEST_SODIUM"
 
           # Generate GitHub Step Summary
           {
@@ -44,9 +47,9 @@ jobs:
               echo "| **Minecraft** | \`$CURRENT_MC\` | \`$LATEST_MC\` | 🚀 Update Available |"
             fi
             if [ "$CURRENT_SODIUM" = "$LATEST_SODIUM" ]; then
-              echo "| **Sodium** | \`$CURRENT_SODIUM\` | \`$LATEST_SODIUM\` | ✅ Up to date |"
+              echo "| **Sodium (Fabric)** | \`$CURRENT_SODIUM\` | \`$LATEST_SODIUM\` | ✅ Up to date |"
             else
-              echo "| **Sodium** | \`$CURRENT_SODIUM\` | \`$LATEST_SODIUM\` | 🚀 Update Available |"
+              echo "| **Sodium (Fabric)** | \`$CURRENT_SODIUM\` | \`$LATEST_SODIUM\` | 🚀 Update Available |"
             fi
             echo ""
           } >> $GITHUB_STEP_SUMMARY
@@ -62,9 +65,13 @@ jobs:
         uses: actions/github-script@v7
         with:
           script: |
-            github.rest.issues.create({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              title: '🚀 Update Available: New Minecraft or Sodium Release Detected',
-              body: 'Automated update check detected new releases available on Fabric Meta / Modrinth API.\n\nPlease check the [Action Summary](' + context.serverUrl + '/' + context.repo.owner + '/' + context.repo.repo + '/actions/runs/' + context.runId + ') for details.'
-            });
+            try {
+              await github.rest.issues.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                title: '🚀 Update Available: New Minecraft or Sodium Release Detected',
+                body: 'Automated update check detected new releases available on Fabric Meta / Modrinth API.\n\nPlease check the [Action Summary](' + context.serverUrl + '/' + context.repo.owner + '/' + context.repo.repo + '/actions/runs/' + context.runId + ') for details.'
+              });
+            } catch (error) {
+              console.log('Could not create GitHub issue:', error);
+            }
