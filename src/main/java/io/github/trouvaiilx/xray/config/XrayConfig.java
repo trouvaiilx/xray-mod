@@ -31,6 +31,10 @@ public final class XrayConfig {
         XrayConfigManager.tick();
     }
 
+    public static boolean isAllowed() {
+        return XrayState.isAllowed();
+    }
+
     public static void updatePlayerChunkPos(int cx, int cz) {
         XrayDistanceChecker.updatePlayerChunkPos(cx, cz);
     }

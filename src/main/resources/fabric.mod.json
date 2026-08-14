@@ -3,7 +3,7 @@
   "id": "xray-mod",
   "version": "${version}",
   "name": "X-Ray",
-  "description": "Client-side X-ray for Fabric. STRICTLY REQUIRES Sodium to be installed for X-ray rendering visuals.",
+  "description": "Customizable X-ray for Fabric. Fully compliant with Modrinth Rule 3.3.a (requires server-side opt-in on multiplayer). Requires Sodium for client rendering visuals.",
   "authors": [
     "trouvaiilx"
   ],
@@ -15,10 +15,16 @@
   },
   "license": "MIT",
   "icon": "assets/xray-mod/icon.png",
-  "environment": "client",
+  "environment": "*",
   "entrypoints": {
+    "main": [
+      "io.github.trouvaiilx.xray.XrayCommon"
+    ],
     "client": [
       "io.github.trouvaiilx.xray.XrayClient"
+    ],
+    "server": [
+      "io.github.trouvaiilx.xray.server.XrayServer"
     ]
   },
   "mixins": [

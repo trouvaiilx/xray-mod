@@ -24,6 +24,7 @@ public final class XrayClient implements ClientModInitializer {
 
     @Override
     public void onInitializeClient() {
+        io.github.trouvaiilx.xray.core.state.XrayServerConsent.register();
         XrayConfig.load();
         XrayCommand.register();
         XrayKeybinds.register();

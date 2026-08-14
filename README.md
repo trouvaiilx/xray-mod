@@ -11,9 +11,27 @@
 
 > **Sodium Required**: This mod **ONLY works when the [Sodium](https://modrinth.com/mod/sodium) mod is installed**. Sodium provides the chunk rendering pipeline that this mod hooks into to hide non-whitelisted blocks and apply fullbright lighting. Without Sodium installed, X-ray rendering will **NOT** function (attempting to use commands or keybinds will display a warning message in chat).
 
+> **Modrinth Content Rules Compliant**: In accordance with [Modrinth Rule 3.3.a](https://modrinth.com/legal/rules), X-ray functionality strictly requires a **server-side opt-in** in multiplayer environments:
+> - **Singleplayer / Integrated Local Game**: Fully unlocked by default (you are the local host).
+> - **Multiplayer Dedicated Servers**: X-ray features are disabled by default unless the server explicitly opts in by installing this mod on the server or broadcasting the `xray-mod:opt_in` handshake packet.
+
 > **Why This Mod Was Created**: After searching everywhere for a modern Fabric X-ray mod, none were available that natively supported Sodium's custom rendering pipeline without issues. This mod was built from the ground up to solve that, hooking directly into Sodium for smooth, glitch-free X-ray rendering!
 
 ---
+
+## Server Opt-In & Multiplayer Setup
+
+To allow players to use X-Ray on your dedicated server:
+1. Install this mod JAR into your server's `mods/` directory.
+2. Server configuration is stored at `config/xray-mod-server.json`:
+   ```json
+   {
+     "allowXray": true
+   }
+   ```
+3. Admins (level 2+) can also toggle X-ray permissions dynamically in-game or from console:
+   - `/xrayserver status` — View current opt-in status.
+   - `/xrayserver allow <true|false>` — Update opt-in permission and immediately broadcast the update to all connected players.
 
 ## Features
 
@@ -77,6 +95,8 @@
 | **Set Peek Radius** | `/xray peek radius <1-10>` | Adjusts Peek Mode outline radius (1 to 10 blocks) |
 | **Set Peek Opacity** | `/xray peek opacity <1-100>` | Adjusts Peek Mode line opacity percentage (1% to 100%) |
 | **Legacy Alias** | `/trigger xray [true/false]` | Client-side command alias for scoreboard trigger compatibility |
+| **Server Status** | `/xrayserver status` | (Server/Admin) View current server opt-in status |
+| **Server Opt-In** | `/xrayserver allow <true/false>` | (Server/Admin) Toggle server-wide X-ray permission |
 
 ---
 
