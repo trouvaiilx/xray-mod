@@ -20,7 +20,7 @@
 - **Customizable Peek Mode**:
   - Outlines local unmined boundary blocks, non-full blocks (slabs, stairs, fences), and container entities (*Chest Boats*, *Minecarts with Chests*, *Chest Rafts*, *Hoppers*, *Spawners*) with customizable wireframe bounding boxes.
   - Enabled by default with a soft cyan (`#00E5FF`) stroke color.
-  - Configurable **Peek Radius** (1–10 blocks) and **Peek Opacity** (1%–100%) via GUI sliders or `/xray peek` commands.
+  - Configurable **Peek Radius** (1–10 blocks), **Peek Opacity** (1%–100%), and **Peek Outline Thickness** (0.5px–5.0px) via GUI sliders or `/xray peek` commands.
 - **Chest & Container Entity Integration**:
   - Dynamically intercepts `BlockEntityRenderDispatcher` and `EntityRenderDispatcher`.
   - Non-whitelisted chests, trapped chests, vaults, shulker boxes, barrels, chest minecarts, and chest boats are **culled and hidden** through walls when X-ray is enabled.
@@ -31,7 +31,7 @@
   - **Backslash (`\`)**: Toggle X-Ray ON / OFF (triggers immediate live chunk re-render).
   - **Apostrophe (`'`)**: Toggle Peek Mode ON / OFF.
   - **Right Shift**: Open Settings GUI.
-- **Commands**: `/xray`, `/xray toggle`, `/xray peek [on|off]`, `/xray peek radius <1-10>`, `/xray peek opacity <1-100>` with full tab-completion.
+- **Commands**: `/xray`, `/xray toggle`, `/xray peek [on|off]`, `/xray peek radius <1-10>`, `/xray peek opacity <1-100>`, `/xray peek thickness <0.5-5.0>` with full tab-completion.
 - **Search & Category Filters**: Easily filter blocks by category (*All*, *Ores*, *Storage*, *Redstone*, *Structures*, *Nether*, *End*, *Underground*, *Natural*, *Building*, *Other*) or search by block ID and localized name.
 - **Preset System**: Quick-select presets (*Default*, *Ores*, *Fluids*, *Valuables*, or *Custom*).
 - **X-Ray Render Distance**:
@@ -76,6 +76,7 @@
 | **Open Menu** | **Right Shift** | Opens the interactive settings GUI menu |
 | **Set Peek Radius** | `/xray peek radius <1-10>` | Adjusts Peek Mode outline radius (1 to 10 blocks) |
 | **Set Peek Opacity** | `/xray peek opacity <1-100>` | Adjusts Peek Mode line opacity percentage (1% to 100%) |
+| **Set Peek Thickness** | `/xray peek thickness <0.5-5.0>` | Adjusts Peek Mode outline wireframe thickness (0.5px to 5.0px) |
 
 ---
 
