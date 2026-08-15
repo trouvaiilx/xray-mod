@@ -15,30 +15,18 @@ public final class XrayState {
     private XrayState() {
     }
 
-    public static boolean isAllowed() {
-        return io.github.trouvaiilx.xray.core.state.XrayServerConsent.isAllowed();
-    }
-
     public static boolean isEnabled() {
-        if (!SodiumCompat.isAvailable() || !isAllowed()) {
+        if (!SodiumCompat.isAvailable()) {
             return false;
         }
         return ENABLED.get();
     }
 
     public static void setEnabled(boolean value) {
-        if (value && !isAllowed()) {
-            ENABLED.set(false);
-            return;
-        }
         ENABLED.set(value);
     }
 
     public static boolean toggle() {
-        if (!isAllowed()) {
-            ENABLED.set(false);
-            return false;
-        }
         boolean newValue = !ENABLED.get();
         ENABLED.set(newValue);
         return newValue;

@@ -229,21 +229,10 @@ public final class XrayConfigScreen extends Screen {
         // Header Title
         graphics.text(this.font, this.title, (this.width - this.font.width(this.title)) / 2, 4, 0xFFFFFFFF, true);
 
-        // Subtitle badge showing active whitelisted block count and server opt-in status
+        // Subtitle badge showing active whitelisted block count
         int whitelistedCount = XrayConfig.getWhitelistIds().size();
-        Component subTitle;
-        int statusColor;
-        if (io.github.trouvaiilx.xray.core.state.XrayServerConsent.isSingleplayer()) {
-            subTitle = Component.literal("Whitelisted: " + whitelistedCount + " blocks • Singleplayer (Allowed)");
-            statusColor = 0xFF00FF66;
-        } else if (io.github.trouvaiilx.xray.core.state.XrayServerConsent.isServerOptedIn()) {
-            subTitle = Component.literal("Whitelisted: " + whitelistedCount + " blocks • Server Opt-In: Granted");
-            statusColor = 0xFF00FF66;
-        } else {
-            subTitle = Component.literal("Whitelisted: " + whitelistedCount + " blocks • Server Opt-In: Required (Disabled)");
-            statusColor = 0xFFFF5555;
-        }
-        graphics.text(this.font, subTitle, (this.width - this.font.width(subTitle)) / 2, 14, statusColor, true);
+        Component subTitle = Component.literal("Whitelisted: " + whitelistedCount + " blocks");
+        graphics.text(this.font, subTitle, (this.width - this.font.width(subTitle)) / 2, 14, 0xFF00FF66, true);
     }
 
     @Override

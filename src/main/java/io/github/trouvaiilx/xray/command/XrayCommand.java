@@ -61,10 +61,6 @@ public final class XrayCommand {
             sendSodiumMissingWarning(ctx);
             return 0;
         }
-        if (value && !XrayState.isAllowed()) {
-            sendServerOptInRequiredWarning(ctx);
-            return 0;
-        }
         XrayState.setEnabled(value);
         forceChunkRefresh();
         feedback(ctx, value);
@@ -76,10 +72,6 @@ public final class XrayCommand {
             sendSodiumMissingWarning(ctx);
             return 0;
         }
-        if (!XrayState.isEnabled() && !XrayState.isAllowed()) {
-            sendServerOptInRequiredWarning(ctx);
-            return 0;
-        }
         boolean nowEnabled = XrayState.toggle();
         forceChunkRefresh();
         feedback(ctx, nowEnabled);
@@ -87,10 +79,6 @@ public final class XrayCommand {
     }
 
     private static int togglePeek(CommandContext<FabricClientCommandSource> ctx) {
-        if (!XrayState.isAllowed()) {
-            sendServerOptInRequiredWarning(ctx);
-            return 0;
-        }
         boolean peek = !io.github.trouvaiilx.xray.config.XrayConfig.isPeekEnabled();
         io.github.trouvaiilx.xray.config.XrayConfig.setPeekEnabled(peek);
         ctx.getSource().sendFeedback(Component.literal("Peek Mode " + (peek ? "enabled" : "disabled")));
@@ -98,10 +86,6 @@ public final class XrayCommand {
     }
 
     private static int setPeekAndRespond(CommandContext<FabricClientCommandSource> ctx, boolean value) {
-        if (value && !XrayState.isAllowed()) {
-            sendServerOptInRequiredWarning(ctx);
-            return 0;
-        }
         io.github.trouvaiilx.xray.config.XrayConfig.setPeekEnabled(value);
         ctx.getSource().sendFeedback(Component.literal("Peek Mode " + (value ? "enabled" : "disabled")));
         return 1;
@@ -124,11 +108,6 @@ public final class XrayCommand {
     private static void sendSodiumMissingWarning(CommandContext<FabricClientCommandSource> ctx) {
         ctx.getSource().sendFeedback(Component.literal(
                 "§c[X-Ray] Sodium is not installed! X-ray rendering requires the Sodium mod to be installed."));
-    }
-
-    private static void sendServerOptInRequiredWarning(CommandContext<FabricClientCommandSource> ctx) {
-        ctx.getSource().sendFeedback(Component.literal(
-                "§c[X-Ray] X-ray is disabled on this server. A server-side opt-in is required on multiplayer servers (Modrinth Content Rules Rule 3.3.a)."));
     }
 
     /**

@@ -83,13 +83,6 @@ public final class XrayKeybinds {
             }
             return;
         }
-        if (!io.github.trouvaiilx.xray.XrayState.isEnabled() && !io.github.trouvaiilx.xray.XrayState.isAllowed()) {
-            if (client.player != null) {
-                client.player.sendSystemMessage(Component.literal(
-                        "§c[X-Ray] X-ray is disabled on this server. Server-side opt-in is required on multiplayer servers (Modrinth Content Rules Rule 3.3.a)."));
-            }
-            return;
-        }
         boolean enabled = io.github.trouvaiilx.xray.XrayState.toggle();
         XrayClient.refreshRender();
         if (client.player != null) {
@@ -99,13 +92,6 @@ public final class XrayKeybinds {
     }
 
     private static void togglePeek(Minecraft client) {
-        if (!io.github.trouvaiilx.xray.XrayState.isAllowed()) {
-            if (client.player != null) {
-                client.player.sendSystemMessage(Component.literal(
-                        "§c[X-Ray] Peek Mode is disabled on this server. Server-side opt-in is required on multiplayer servers (Modrinth Content Rules Rule 3.3.a)."));
-            }
-            return;
-        }
         boolean peek = !io.github.trouvaiilx.xray.config.XrayConfig.isPeekEnabled();
         io.github.trouvaiilx.xray.config.XrayConfig.setPeekEnabled(peek);
         if (client.player != null) {
