@@ -31,6 +31,7 @@ public final class XrayState {
     private static final AtomicBoolean PEEK_ENABLED = new AtomicBoolean(true);
     private static final AtomicInteger PEEK_RADIUS = new AtomicInteger(XrayConfigData.DEFAULT_PEEK_RADIUS);
     private static final AtomicInteger PEEK_OPACITY = new AtomicInteger(XrayConfigData.DEFAULT_PEEK_OPACITY);
+    private static final AtomicInteger PEEK_THICKNESS = new AtomicInteger(Float.floatToRawIntBits(XrayConfigData.DEFAULT_PEEK_THICKNESS));
     private static final AtomicInteger PEEK_COLOR = new AtomicInteger(XrayConfigData.DEFAULT_PEEK_COLOR);
 
     private static final AtomicReference<String> ACTIVE_PRESET = new AtomicReference<>(XrayPresets.DEFAULT);
@@ -55,6 +56,7 @@ public final class XrayState {
         PEEK_ENABLED.set(data.peekEnabled);
         PEEK_RADIUS.set(clampPeekRadius(data.peekRadius));
         PEEK_OPACITY.set(clampPeekOpacity(data.peekOpacity));
+        PEEK_THICKNESS.set(Float.floatToRawIntBits(clampPeekThickness(data.peekThickness > 0.0F ? data.peekThickness : XrayConfigData.DEFAULT_PEEK_THICKNESS)));
         PEEK_COLOR.set(data.peekColor != 0 ? data.peekColor : XrayConfigData.DEFAULT_PEEK_COLOR);
         ACTIVE_PRESET.set(data.activePreset != null ? data.activePreset : XrayPresets.CUSTOM);
         publishWhitelist(data.whitelist != null ? data.whitelist : XrayPresets.blockIds(XrayPresets.DEFAULT));
@@ -68,6 +70,7 @@ public final class XrayState {
         data.peekEnabled = PEEK_ENABLED.get();
         data.peekRadius = PEEK_RADIUS.get();
         data.peekOpacity = PEEK_OPACITY.get();
+        data.peekThickness = getPeekThickness();
         data.peekColor = PEEK_COLOR.get();
         data.activePreset = ACTIVE_PRESET.get();
         data.whitelist = WHITELIST_IDS.get();
@@ -144,6 +147,18 @@ public final class XrayState {
     public static void setPeekOpacity(int opacity) {
         int clamped = clampPeekOpacity(opacity);
         if (PEEK_OPACITY.getAndSet(clamped) != clamped) {
+            XrayConfigManager.markDirty();
+        }
+    }
+
+    public static float getPeekThickness() {
+        return Float.intBitsToFloat(PEEK_THICKNESS.get());
+    }
+
+    public static void setPeekThickness(float thickness) {
+        float clamped = clampPeekThickness(thickness);
+        int bits = Float.floatToRawIntBits(clamped);
+        if (PEEK_THICKNESS.getAndSet(bits) != bits) {
             XrayConfigManager.markDirty();
         }
     }
@@ -278,5 +293,9 @@ public final class XrayState {
 
     private static int clampPeekOpacity(int value) {
         return Math.max(XrayConfigData.MIN_PEEK_OPACITY, Math.min(XrayConfigData.MAX_PEEK_OPACITY, value));
+    }
+
+    private static float clampPeekThickness(float value) {
+        return Math.max(XrayConfigData.MIN_PEEK_THICKNESS, Math.min(XrayConfigData.MAX_PEEK_THICKNESS, value));
     }
 }

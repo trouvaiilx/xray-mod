@@ -19,6 +19,8 @@ public final class XrayConfig {
     public static final int MAX_PEEK_RADIUS = XrayConfigData.MAX_PEEK_RADIUS;
     public static final int MIN_PEEK_OPACITY = XrayConfigData.MIN_PEEK_OPACITY;
     public static final int MAX_PEEK_OPACITY = XrayConfigData.MAX_PEEK_OPACITY;
+    public static final float MIN_PEEK_THICKNESS = XrayConfigData.MIN_PEEK_THICKNESS;
+    public static final float MAX_PEEK_THICKNESS = XrayConfigData.MAX_PEEK_THICKNESS;
 
     private XrayConfig() {
     }
@@ -69,6 +71,14 @@ public final class XrayConfig {
 
     public static void setPeekOpacity(int opacity) {
         XrayState.setPeekOpacity(opacity);
+    }
+
+    public static float getPeekThickness() {
+        return XrayState.getPeekThickness();
+    }
+
+    public static void setPeekThickness(float thickness) {
+        XrayState.setPeekThickness(thickness);
     }
 
     public static int getPeekColor() {

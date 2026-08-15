@@ -34,6 +34,7 @@ public final class XrayPeekRenderer {
 
     // Cached GizmoStyle state to avoid constructing new styles every tick when config is unchanged
     private static int lastArgb = 0;
+    private static float lastThickness = 0.0F;
     private static GizmoStyle cachedStyle = null;
 
     private XrayPeekRenderer() {
@@ -62,10 +63,12 @@ public final class XrayPeekRenderer {
             int alphaByte = (int) (opacity * 255.0F) & 0xFF;
             int colorRGB = XrayConfig.getPeekColor();
             int argb = (alphaByte << 24) | (colorRGB & 0xFFFFFF);
+            float thickness = XrayConfig.getPeekThickness();
 
-            if (cachedStyle == null || lastArgb != argb) {
+            if (cachedStyle == null || lastArgb != argb || lastThickness != thickness) {
                 lastArgb = argb;
-                cachedStyle = GizmoStyle.stroke(argb, 1.5F);
+                lastThickness = thickness;
+                cachedStyle = GizmoStyle.stroke(argb, thickness);
             }
 
             GizmoStyle style = cachedStyle;

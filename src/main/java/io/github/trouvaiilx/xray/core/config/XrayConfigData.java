@@ -21,6 +21,10 @@ public final class XrayConfigData {
     public static final int MAX_PEEK_OPACITY = 100;
     public static final int DEFAULT_PEEK_OPACITY = 40;
 
+    public static final float MIN_PEEK_THICKNESS = 0.5F;
+    public static final float MAX_PEEK_THICKNESS = 5.0F;
+    public static final float DEFAULT_PEEK_THICKNESS = 1.5F;
+
     public static final int DEFAULT_PEEK_COLOR = 0x00E5FF;
 
     public int renderDistance = DEFAULT_RENDER_DISTANCE;
@@ -29,6 +33,7 @@ public final class XrayConfigData {
     public boolean peekEnabled = true;
     public int peekRadius = DEFAULT_PEEK_RADIUS;
     public int peekOpacity = DEFAULT_PEEK_OPACITY;
+    public float peekThickness = DEFAULT_PEEK_THICKNESS;
     public int peekColor = DEFAULT_PEEK_COLOR;
     public String activePreset = XrayPresets.DEFAULT;
     public Set<String> whitelist = new LinkedHashSet<>();

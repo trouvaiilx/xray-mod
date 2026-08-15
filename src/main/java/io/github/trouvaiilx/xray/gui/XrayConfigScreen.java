@@ -56,7 +56,7 @@ public final class XrayConfigScreen extends Screen {
     @Override
     protected void init() {
         int panelWidth = Math.min(340, this.width - 20);
-        int panelHeight = Math.min(320, this.height - 20);
+        int panelHeight = Math.min(340, this.height - 20);
         int left = (this.width - panelWidth) / 2;
         int top = (this.height - panelHeight) / 2;
 
@@ -82,7 +82,7 @@ public final class XrayConfigScreen extends Screen {
         y += 22;
 
         // 3. Block Grid
-        int gridHeight = panelHeight - 22 - 22 - 22 - 22 - 22 - 22 - 22 - 10;
+        int gridHeight = panelHeight - 198;
         this.grid = new BlockGridWidget(left, y, panelWidth, Math.max(54, gridHeight), this::onWhitelistToggled);
         this.addRenderableWidget(this.grid);
         y += this.grid.getHeight() + 4;
@@ -101,18 +101,20 @@ public final class XrayConfigScreen extends Screen {
         y += 22;
 
         this.addRenderableWidget(new PeekOpacitySlider(left, y, halfWidth, 18));
-
-        this.fullbrightButton = Button.builder(fullbrightLabel(), b -> toggleFullbright())
-                .bounds(left + halfWidth + 2, y, halfWidth, 18).build();
-        this.addRenderableWidget(this.fullbrightButton);
+        this.addRenderableWidget(new PeekThicknessSlider(left + halfWidth + 2, y, halfWidth, 18));
         y += 22;
 
-        this.alwaysFluidsButton = Button.builder(alwaysFluidsLabel(), b -> toggleAlwaysFluids())
+        this.fullbrightButton = Button.builder(fullbrightLabel(), b -> toggleFullbright())
                 .bounds(left, y, halfWidth, 18).build();
+        this.addRenderableWidget(this.fullbrightButton);
+
+        this.alwaysFluidsButton = Button.builder(alwaysFluidsLabel(), b -> toggleAlwaysFluids())
+                .bounds(left + halfWidth + 2, y, halfWidth, 18).build();
         this.addRenderableWidget(this.alwaysFluidsButton);
+        y += 22;
 
         this.presetButton = Button.builder(presetLabel(), b -> cyclePreset())
-                .bounds(left + halfWidth + 2, y, halfWidth, 18).build();
+                .bounds(left, y, panelWidth, 18).build();
         this.addRenderableWidget(this.presetButton);
         y += 22;
 

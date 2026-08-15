@@ -2,6 +2,7 @@ package io.github.trouvaiilx.xray.command;
 
 import io.github.trouvaiilx.xray.XrayState;
 import io.github.trouvaiilx.xray.compat.SodiumRenderRefresher;
+import com.mojang.brigadier.arguments.FloatArgumentType;
 import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.context.CommandContext;
 import net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallback;
@@ -9,6 +10,8 @@ import net.fabricmc.fabric.api.client.command.v2.ClientCommands;
 import net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.network.chat.Component;
+
+import java.util.Locale;
 
 /**
  * Registers client-only commands for X-Ray:
@@ -51,7 +54,10 @@ public final class XrayCommand {
                                                     .executes(XrayCommand::setPeekRadius)))
                                     .then(ClientCommands.literal("opacity")
                                             .then(ClientCommands.argument("value", IntegerArgumentType.integer(1, 100))
-                                                    .executes(XrayCommand::setPeekOpacity))))
+                                                    .executes(XrayCommand::setPeekOpacity)))
+                                    .then(ClientCommands.literal("thickness")
+                                            .then(ClientCommands.argument("value", FloatArgumentType.floatArg(io.github.trouvaiilx.xray.config.XrayConfig.MIN_PEEK_THICKNESS, io.github.trouvaiilx.xray.config.XrayConfig.MAX_PEEK_THICKNESS))
+                                                    .executes(XrayCommand::setPeekThickness))))
             );
         });
     }
@@ -118,6 +124,13 @@ public final class XrayCommand {
         int opacity = com.mojang.brigadier.arguments.IntegerArgumentType.getInteger(ctx, "value");
         io.github.trouvaiilx.xray.config.XrayConfig.setPeekOpacity(opacity);
         ctx.getSource().sendFeedback(Component.literal("Peek Opacity set to " + opacity + "%"));
+        return 1;
+    }
+
+    private static int setPeekThickness(CommandContext<FabricClientCommandSource> ctx) {
+        float thickness = FloatArgumentType.getFloat(ctx, "value");
+        io.github.trouvaiilx.xray.config.XrayConfig.setPeekThickness(thickness);
+        ctx.getSource().sendFeedback(Component.literal("Peek Thickness set to " + String.format(Locale.ROOT, "%.1f", thickness) + "px"));
         return 1;
     }
 

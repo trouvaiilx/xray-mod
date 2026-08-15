@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="icon.png" width="128" height="128" alt="X-Ray Mod Icon" />
+  <img src="icon.png" width="256" height="256" alt="X-Ray Mod Icon" />
   <h1>X-Ray Mod</h1>
 
   [![Build](https://github.com/trouvaiilx/xray-mod/actions/workflows/build.yml/badge.svg)](https://github.com/trouvaiilx/xray-mod/actions/workflows/build.yml)
@@ -11,10 +11,6 @@
 
 > **Sodium Required**: This mod **ONLY works when the [Sodium](https://modrinth.com/mod/sodium) mod is installed**. Sodium provides the chunk rendering pipeline that this mod hooks into to hide non-whitelisted blocks and apply fullbright lighting. Without Sodium installed, X-ray rendering will **NOT** function (attempting to use commands or keybinds will display a warning message in chat).
 
-> **Modrinth Content Rules Compliant**: In accordance with [Modrinth Rule 3.3.a](https://modrinth.com/legal/rules), X-ray functionality strictly requires a **server-side opt-in** in multiplayer environments:
-> - **Singleplayer / Integrated Local Game**: Fully unlocked by default (you are the local host).
-> - **Multiplayer Dedicated Servers**: X-ray features are disabled by default unless the server explicitly opts in by installing this mod on the server or broadcasting the `xray-mod:opt_in` handshake packet.
->
 > 💡 *Looking for a standalone version without server opt-in checks (e.g. for personal use or private servers)? Check out the [`client-only`](https://github.com/trouvaiilx/xray-mod/tree/client-only) branch.*
 
 > **Why This Mod Was Created**: After searching everywhere for a modern Fabric X-ray mod, none were available that natively supported Sodium's custom rendering pipeline without issues. This mod was built from the ground up to solve that, hooking directly into Sodium for smooth, glitch-free X-ray rendering!
@@ -42,7 +38,7 @@ To allow players to use X-Ray on your dedicated server:
 - **Customizable Peek Mode**:
   - Outlines local unmined boundary blocks, non-full blocks (slabs, stairs, fences), and container entities (*Chest Boats*, *Minecarts with Chests*, *Chest Rafts*, *Hoppers*, *Spawners*) with customizable wireframe bounding boxes.
   - Enabled by default with a soft cyan (`#00E5FF`) stroke color.
-  - Configurable **Peek Radius** (1–10 blocks) and **Peek Opacity** (1%–100%) via GUI sliders or `/xray peek` commands.
+  - Configurable **Peek Radius** (1–10 blocks), **Peek Opacity** (1%–100%), and **Peek Outline Thickness** (0.5px–5.0px) via GUI sliders or `/xray peek` commands.
 - **Chest & Container Entity Integration**:
   - Dynamically intercepts `BlockEntityRenderDispatcher` and `EntityRenderDispatcher`.
   - Non-whitelisted chests, trapped chests, vaults, shulker boxes, barrels, chest minecarts, and chest boats are **culled and hidden** through walls when X-ray is enabled.
@@ -53,7 +49,7 @@ To allow players to use X-Ray on your dedicated server:
   - **Backslash (`\`)**: Toggle X-Ray ON / OFF (triggers immediate live chunk re-render).
   - **Apostrophe (`'`)**: Toggle Peek Mode ON / OFF.
   - **Right Shift**: Open Settings GUI.
-- **Commands**: `/xray`, `/xray toggle`, `/xray peek [on|off]`, `/xray peek radius <1-10>`, `/xray peek opacity <1-100>` with full tab-completion.
+- **Commands**: `/xray`, `/xray toggle`, `/xray peek [on|off]`, `/xray peek radius <1-10>`, `/xray peek opacity <1-100>`, `/xray peek thickness <0.5-5.0>` with full tab-completion.
 - **Search & Category Filters**: Easily filter blocks by category (*All*, *Ores*, *Storage*, *Redstone*, *Structures*, *Nether*, *End*, *Underground*, *Natural*, *Building*, *Other*) or search by block ID and localized name.
 - **Preset System**: Quick-select presets (*Default*, *Ores*, *Fluids*, *Valuables*, or *Custom*).
 - **X-Ray Render Distance**:
@@ -80,7 +76,7 @@ To allow players to use X-Ray on your dedicated server:
         <img src="docs/images/overworld.png" alt="Overworld X-Ray" width="400" />
       </td>
       <td align="center" width="50%">
-        <b>Nether X-Ray</b><br/>
+        <b>Nether X-Ray & Peek Mode</b><br/>
         <img src="docs/images/nether.png" alt="Nether X-Ray" width="400" />
       </td>
     </tr>
@@ -98,6 +94,7 @@ To allow players to use X-Ray on your dedicated server:
 | **Open Menu** | **Right Shift** | Opens the interactive settings GUI menu |
 | **Set Peek Radius** | `/xray peek radius <1-10>` | Adjusts Peek Mode outline radius (1 to 10 blocks) |
 | **Set Peek Opacity** | `/xray peek opacity <1-100>` | Adjusts Peek Mode line opacity percentage (1% to 100%) |
+| **Set Peek Thickness** | `/xray peek thickness <0.5-5.0>` | Adjusts Peek Mode outline wireframe thickness (0.5px to 5.0px) |
 | **Server Status** | `/xrayserver status` | (Server/Admin) View current server opt-in status |
 | **Server Opt-In** | `/xrayserver allow <true/false>` | (Server/Admin) Toggle server-wide X-ray permission |
 
