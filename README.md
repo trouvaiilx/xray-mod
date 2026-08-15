@@ -94,7 +94,6 @@ To allow players to use X-Ray on your dedicated server:
 | **Open Menu** | **Right Shift** | Opens the interactive settings GUI menu |
 | **Set Peek Radius** | `/xray peek radius <1-10>` | Adjusts Peek Mode outline radius (1 to 10 blocks) |
 | **Set Peek Opacity** | `/xray peek opacity <1-100>` | Adjusts Peek Mode line opacity percentage (1% to 100%) |
-| **Legacy Alias** | `/trigger xray [true/false]` | Client-side command alias for scoreboard trigger compatibility |
 | **Server Status** | `/xrayserver status` | (Server/Admin) View current server opt-in status |
 | **Server Opt-In** | `/xrayserver allow <true/false>` | (Server/Admin) Toggle server-wide X-ray permission |
 

@@ -2,7 +2,7 @@ package io.github.trouvaiilx.xray.command;
 
 import io.github.trouvaiilx.xray.XrayState;
 import io.github.trouvaiilx.xray.compat.SodiumRenderRefresher;
-import com.mojang.brigadier.arguments.BoolArgumentType;
+import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.context.CommandContext;
 import net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallback;
 import net.fabricmc.fabric.api.client.command.v2.ClientCommands;
@@ -11,31 +11,11 @@ import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.network.chat.Component;
 
 /**
- * Registers TWO client-only commands:
+ * Registers client-only commands for X-Ray:
  *
- *   /xray toggle | /xray on | /xray off   <- primary, guaranteed clean tab-completion
- *   /trigger xray [true|false]            <- kept as a muscle-memory alias
+ *   /xray toggle | /xray on | /xray off | /xray peek ...
  *
- * Both are entirely client-side and never touch the server or a real scoreboard objective.
- *
- * IMPORTANT about "/trigger": vanilla itself already owns a REAL server-side "/trigger
- * <objective>" command (for scoreboard-trigger objectives). Fabric API's own docs state
- * outright that when a client-only command and a server command share a top-level literal,
- * "the precedence rules... are an implementation detail... the aim is to make commands from
- * the server take precedence over client-sided commands" -- i.e. tab-completion under a
- * shared literal is explicitly NOT guaranteed. That's almost certainly why "/trigger x" was
- * failing to suggest "xray": the real vanilla trigger node was winning. "/xray" is a literal
- * nothing else registers, so it has no such ambiguity and will always tab-complete cleanly.
- * The "/trigger xray" alias is left in for convenience, but don't rely on its autocomplete.
- *
- * NOTE: Fabric API renamed the old "ClientCommandManager" helper class to "ClientCommands"
- * (to match vanilla's own Commands/ClientCommands naming under Mojang mappings), and command
- * registration now happens inside a ClientCommandRegistrationCallback.EVENT listener rather
- * than directly against a static DISPATCHER field at mod-init time. Verified against Fabric's
- * current docs (docs.fabricmc.net/develop/commands/basics, current as of this writing).
- *
- * If you specifically want to drive this off a REAL vanilla scoreboard trigger objective
- * instead, see the comment at the bottom of this file for the alternative approach.
+ * All are entirely client-side and never touch the server or interfere with server/vanilla commands.
  */
 public final class XrayCommand {
 
@@ -67,21 +47,11 @@ public final class XrayCommand {
                                     .then(ClientCommands.literal("off")
                                             .executes(ctx -> setPeekAndRespond(ctx, false)))
                                     .then(ClientCommands.literal("radius")
-                                            .then(ClientCommands.argument("value", com.mojang.brigadier.arguments.IntegerArgumentType.integer(1, 10))
+                                            .then(ClientCommands.argument("value", IntegerArgumentType.integer(1, 10))
                                                     .executes(XrayCommand::setPeekRadius)))
                                     .then(ClientCommands.literal("opacity")
-                                            .then(ClientCommands.argument("value", com.mojang.brigadier.arguments.IntegerArgumentType.integer(1, 100))
+                                            .then(ClientCommands.argument("value", IntegerArgumentType.integer(1, 100))
                                                     .executes(XrayCommand::setPeekOpacity))))
-            );
-
-            // Legacy alias -- kept for the "/trigger xray" muscle memory, but its
-            // tab-completion is NOT guaranteed (see class doc above).
-            dispatcher.register(
-                    ClientCommands.literal("trigger")
-                            .then(ClientCommands.literal("xray")
-                                    .executes(XrayCommand::toggle)
-                                    .then(ClientCommands.argument("state", BoolArgumentType.bool())
-                                            .executes(XrayCommand::setExplicit)))
             );
         });
     }
@@ -113,22 +83,6 @@ public final class XrayCommand {
         boolean nowEnabled = XrayState.toggle();
         forceChunkRefresh();
         feedback(ctx, nowEnabled);
-        return 1;
-    }
-
-    private static int setExplicit(CommandContext<FabricClientCommandSource> ctx) {
-        if (!SODIUM_LOADED) {
-            sendSodiumMissingWarning(ctx);
-            return 0;
-        }
-        boolean value = BoolArgumentType.getBool(ctx, "state");
-        if (value && !XrayState.isAllowed()) {
-            sendServerOptInRequiredWarning(ctx);
-            return 0;
-        }
-        XrayState.setEnabled(value);
-        forceChunkRefresh();
-        feedback(ctx, value);
         return 1;
     }
 
