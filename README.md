@@ -14,6 +14,8 @@
 > **Modrinth Content Rules Compliant**: In accordance with [Modrinth Rule 3.3.a](https://modrinth.com/legal/rules), X-ray functionality strictly requires a **server-side opt-in** in multiplayer environments:
 > - **Singleplayer / Integrated Local Game**: Fully unlocked by default (you are the local host).
 > - **Multiplayer Dedicated Servers**: X-ray features are disabled by default unless the server explicitly opts in by installing this mod on the server or broadcasting the `xray-mod:opt_in` handshake packet.
+>
+> 💡 *Looking for a standalone version without server opt-in checks (e.g. for personal use or private servers)? Check out the [`client-only`](https://github.com/trouvaiilx/xray-mod/tree/client-only) branch.*
 
 > **Why This Mod Was Created**: After searching everywhere for a modern Fabric X-ray mod, none were available that natively supported Sodium's custom rendering pipeline without issues. This mod was built from the ground up to solve that, hooking directly into Sodium for smooth, glitch-free X-ray rendering!
 
@@ -32,6 +34,8 @@ To allow players to use X-Ray on your dedicated server:
 3. Admins (level 2+) can also toggle X-ray permissions dynamically in-game or from console:
    - `/xrayserver status` — View current opt-in status.
    - `/xrayserver allow <true|false>` — Update opt-in permission and immediately broadcast the update to all connected players.
+
+> **Note**: If you want a purely client-side build without any server-side companion mod or opt-in requirements, switch to the [`client-only`](https://github.com/trouvaiilx/xray-mod/tree/client-only) branch.
 
 ## Features
 
